@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4サイクルエンジン3D｜吸入・圧縮・燃焼・排気（中学技術）</title>
+<meta name="description" content="ガソリンエンジンの4行程（吸入・圧縮・燃焼・排気）を3Dで回して見られるシミュレーション。クランク2回転でカム1回転、バルブの開閉、混合気の流れまで確認できる。中学技術「エネルギー変換の技術」用。">
+<meta property="og:title" content="4サイクルエンジン3D｜吸入・圧縮・燃焼・排気">
+<meta property="og:description" content="ピストン・クランク・バルブが連動して動く4サイクルエンジンの3D教材。クランク角0〜720°を手で回して、いま何行程かを確かめられる。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-head:'Zen Maru Gothic','UD デジタル 教科書体 NK-R','Hiragino Maru Gothic ProN','BIZ UDPGothic','Yu Gothic UI','Meiryo',sans-serif;
+    --cream:#fdf6ec; --ink:#5a4a3a;
+    --s1:#4f9ddb;   /* 吸入 */
+    --s2:#e0a020;   /* 圧縮 */
+    --s3:#e04a63;   /* 燃焼 */
+    --s4:#8b7f97;   /* 排気 */
+  }
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--cream);
+    font-family:var(--font-head);color:var(--ink);font-weight:500;}
+  canvas{display:block;touch-action:none;}
+  .panel{position:fixed;background:rgba(255,255,255,.93);border-radius:18px;
+    box-shadow:0 4px 14px rgba(90,74,58,.15);}
+
+  #topbar{top:12px;left:12px;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  #topbar h1{margin:0;font-size:17px;font-weight:900;}
+  #topbar .pg{font-size:11px;opacity:.6;}
+
+  /* 行程の大表示 */
+  #strokeBox{top:74px;left:12px;padding:9px 18px;text-align:center;width:252px;}
+  #strokeName{font-size:26px;font-weight:900;letter-spacing:.08em;line-height:1.2;}
+  #strokeSub{font-size:11.5px;opacity:.65;letter-spacing:.06em;margin-top:1px;}
+  #angleRow{font-size:11.5px;margin-top:5px;opacity:.75;display:flex;gap:12px;justify-content:center;}
+  #angleRow b{font-variant-numeric:tabular-nums;}
+  /* 4行程の進捗ドット */
+  #dots{display:flex;gap:4px;justify-content:center;margin-top:6px;}
+  #dots div{height:6px;flex:1;border-radius:999px;background:#e8ddcf;transition:background .2s;}
+
+  #ctrl{top:96px;right:12px;width:186px;padding:10px;display:flex;flex-direction:column;gap:6px;
+    max-height:calc(100vh - 116px);overflow-y:auto;scrollbar-width:thin;}
+  #ctrl button{border:none;border-radius:12px;padding:8px 10px;font-family:var(--font-head);
+    font-size:13px;font-weight:700;color:#fff;cursor:pointer;text-align:left;flex:none;}
+  #ctrl button .st{float:right;opacity:.85;font-size:11px;}
+  #ctrl button.off{opacity:.45;}
+  #btnPlay{background:#e8768f;} #btnStep{background:#e0a020;}
+  #btnCut{background:#7fa8c9;} #btnGas{background:#6cc9a0;}
+  #btnLabel{background:#9c8fd6;} #btnCam2{background:#8d99ae;}
+  #btnQuiz{background:#e86da0;} #btnView{background:#c9b8a4;}
+  .box{background:#faf3e7;border-radius:12px;padding:6px 10px;font-size:12px;font-weight:700;flex:none;}
+  .box input{width:100%;accent-color:#e8768f;}
+  .box .v{float:right;color:#b5527a;}
+
+  /* バルブ状態 */
+  #valveBox{display:flex;gap:6px;}
+  .vchip{flex:1;text-align:center;border-radius:10px;padding:4px 2px;font-weight:900;
+    background:#eee7db;color:#9a8f80;line-height:1.25;overflow:hidden;}
+  .vchip .vn{display:block;font-size:10.5px;white-space:nowrap;
+    transform-origin:center;font-weight:700;opacity:.85;}
+  .vchip .vs{display:block;font-size:13px;}
+  .vchip.open{color:#fff;}
+  #vIn.open{background:#4f9ddb;} #vEx.open{background:#8b7f97;}
+
+  #infobar{left:12px;right:210px;bottom:12px;padding:10px 16px;font-size:13.5px;line-height:1.7;}
+  #infobar b{color:#c2588a;}
+  #energy{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;
+    background:#ffe9c9;color:#b06a00;font-weight:900;font-size:12.5px;opacity:0;transition:opacity .3s;}
+
+  #quiz{left:50%;bottom:78px;transform:translateX(-50%);padding:14px 18px;max-width:560px;
+    text-align:center;display:none;}
+  #quiz .q{font-size:15.5px;font-weight:900;margin-bottom:10px;}
+  #quiz .opts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  #quiz .opts button{border:none;border-radius:12px;padding:10px 18px;font-family:var(--font-head);
+    font-size:14.5px;font-weight:700;color:#fff;cursor:pointer;}
+  #quiz .ans{font-size:13.5px;line-height:1.75;margin-top:10px;display:none;text-align:left;}
+  #qClose{background:#c9b8a4;border:none;border-radius:12px;padding:9px 20px;margin-top:8px;
+    font-family:var(--font-head);font-size:14px;font-weight:700;color:#fff;cursor:pointer;display:none;}
+
+  #start{position:fixed;inset:0;background:rgba(253,246,236,.96);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;padding:20px;}
+  #start h1{font-size:clamp(22px,4vw,34px);margin:0;color:#c2588a;font-weight:900;}
+  #start p{margin:0;font-size:15px;line-height:1.95;text-align:center;}
+  #start .four{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:2px 0;}
+  #start .four span{border-radius:999px;padding:6px 16px;color:#fff;font-weight:900;font-size:14px;}
+  #start button{border:none;border-radius:999px;padding:14px 46px;font-family:var(--font-head);
+    font-size:19px;font-weight:900;color:#fff;background:#e8768f;cursor:pointer;box-shadow:0 6px 0 #c85a72;}
+  #start button:active{transform:translateY(4px);box-shadow:0 2px 0 #c85a72;}
+  #toast{position:fixed;top:96px;left:50%;transform:translateX(-50%);background:#fff;
+    border-radius:999px;padding:9px 22px;font-size:14px;font-weight:700;
+    box-shadow:0 4px 14px rgba(90,74,58,.2);opacity:0;transition:opacity .3s;pointer-events:none;z-index:9;}
+  @media (max-height:700px){
+    #infobar{padding:7px 14px;font-size:12.5px;line-height:1.55;}
+    #topbar{padding:7px 14px;} #strokeName{font-size:22px;}
+  }
+  @media (max-width:720px){
+    #ctrl{width:136px;padding:8px;gap:5px;top:70px;max-height:calc(100vh - 90px);}
+    #ctrl button{font-size:11.5px;padding:7px 8px;}
+    #ctrl button .st{font-size:9.5px;}
+    .box{font-size:10.5px;padding:5px 8px;}
+    .vchip .vn{font-size:9.5px;} .vchip .vs{font-size:12px;}
+    #infobar{right:160px;font-size:11.5px;line-height:1.5;padding:7px 12px;}
+    #strokeBox{width:186px;padding:7px 12px;top:64px;}
+    #strokeName{font-size:19px;} #strokeSub{font-size:10px;}
+    #angleRow{font-size:10px;gap:7px;}
+    #topbar{padding:6px 12px;} #topbar h1{font-size:14px;} #topbar .pg{display:none;}
+    #quiz{max-width:94vw;padding:11px 13px;} #quiz .q{font-size:13.5px;}
+    #quiz .opts button{font-size:13px;padding:8px 13px;}
+  }
+  /* 日本語の行末に1〜2文字だけ残る折り返しを避ける */
+  #infobar, #strokeSub, #quiz .ans{text-wrap:pretty;}
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>⚙️ 4サイクルエンジン3D</h1>
+  <div class="four">
+    <span style="background:var(--s1)">吸入</span>
+    <span style="background:var(--s2)">圧縮</span>
+    <span style="background:var(--s3)">燃焼</span>
+    <span style="background:var(--s4)">排気</span>
+  </div>
+  <p>ガソリンエンジンは、この4つをくり返して動いている。<br>
+  <b>クランクが2回転（720°）で1サイクル。</b><br>
+  スライダーで自分の手で回して、いま何をしているか確かめよう。</p>
+  <button id="startBtn">エンジンを見る</button>
+</div>
+
+<div class="panel" id="topbar">
+  <h1>⚙️ 4サイクルエンジン3D</h1>
+  <span class="pg">技術・エネルギー変換</span>
+</div>
+
+<div class="panel" id="strokeBox">
+  <div id="strokeName">吸入</div>
+  <div id="strokeSub">ピストンが下がって混合気を吸いこむ</div>
+  <div id="angleRow">
+    <span>クランク <b id="crankDeg">0</b>°</span>
+    <span>カム <b id="camDeg">0</b>°</span>
+    <span id="tdcMark">上死点</span>
+  </div>
+  <div id="dots"><div></div><div></div><div></div><div></div></div>
+</div>
+
+<div class="panel" id="ctrl">
+  <button id="btnPlay">▶ うごかす <span class="st">停止中</span></button>
+  <button id="btnStep">⏭ 次の行程へ</button>
+  <div class="box">回す速さ <span class="v" id="spdVal">ふつう</span><br>
+    <input type="range" id="spdSlider" min="1" max="10" value="4" step="1"></div>
+  <div class="box">手で回す（クランク角）<span class="v" id="angVal">0°</span><br>
+    <input type="range" id="angSlider" min="0" max="720" value="0" step="1"></div>
+  <div class="box" id="valveWrap">バルブ
+    <div id="valveBox" style="margin-top:5px;">
+      <div class="vchip" id="vIn"><span class="vn"></span><span class="vs">閉</span></div>
+      <div class="vchip" id="vEx"><span class="vn"></span><span class="vs">閉</span></div>
+    </div>
+  </div>
+  <button id="btnCut">🔪 断面で見る <span class="st">ON</span></button>
+  <button id="btnGas">💨 混合気 <span class="st">ON</span></button>
+  <button id="btnLabel">🏷 部品名 <span class="st">ON</span></button>
+  <button id="btnCam2">🔧 カムシャフト <span class="st">ON</span></button>
+  <button id="btnQuiz">❓ たしかめクイズ</button>
+  <button id="btnView">🎥 視点リセット</button>
+</div>
+
+<div class="panel" id="infobar"><span id="infoText"></span><span id="energy">熱エネルギー → 運動エネルギー</span></div>
+
+<div class="panel" id="quiz">
+  <div class="q" id="quizQ"></div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="ans" id="quizAns"></div>
+  <button id="qClose">とじる</button>
+</div>
+<div id="toast"></div>
+
+<script src="three.min.js"></script>
+<script>
+'use strict';
+/* ==========================================================================
+   4サイクルエンジン3D（中学技術・エネルギー変換の技術）
+   ・4行程：吸入(0-180°) → 圧縮(180-360°) → 燃焼(360-540°) → 排気(540-720°)
+   ・クランク2回転(720°)＝1サイクル、カムシャフトはその半分＝1回転
+   ・ピストン位置は実際のクランク機構の式で計算する
+       y = r·cosθ + √(L² − (r·sinθ)²)
+   ※用語（吸入/吸気・燃焼/爆発）は教科書に合わせて差し替え可（TERMS）
+   ========================================================================== */
+
+/* ---------- 用語（教科書に合わせてここだけ直せばよい） ---------- */
+const TERMS = {
+  strokes: ['吸入', '圧縮', '燃焼', '排気'],
+  subs: [
+    'ピストンが下がって混合気を吸いこむ',
+    'ピストンが上がって混合気を押しちぢめる',
+    '点火して燃え広がり、ピストンを押し下げる',
+    'ピストンが上がって燃えたガスを押し出す'
+  ],
+  intakeValve: '吸気弁', exhaustValve: '排気弁',
+  parts: {piston:'ピストン', rod:'コネクティングロッド', crank:'クランクシャフト',
+          cam:'カムシャフト', plug:'点火プラグ', cyl:'シリンダー'}
+};
+const STROKE_COLORS = ['#4f9ddb', '#e0a020', '#e04a63', '#8b7f97'];
+const T = TERMS;   // 用語はここから引く（TERMSを直せば全画面に反映される）
+const INFO = [
+  `<b>${T.strokes[0]}</b>：${T.intakeValve}が開き、ピストンが下がって<b>混合気（ガソリン＋空気）</b>をシリンダーに吸いこむ。`,
+  `<b>${T.strokes[1]}</b>：両方の弁が閉じ、ピストンが上がって混合気を押しちぢめる。ちぢめるほど<b>爆発の力が大きく</b>なる。`,
+  `<b>${T.strokes[2]}</b>：${T.parts.plug}が火花を出し、混合気が燃えてピストンを押し下げる。<b>ここだけが力を生む行程</b>。`,
+  `<b>${T.strokes[3]}</b>：${T.exhaustValve}が開き、ピストンが上がって燃えたあとのガスを押し出す。`
+];
+
+/* ---------- 基本セットアップ ---------- */
+const VW = () => Math.max(1, innerWidth  || 1280);   // 0になる環境でも破綻させない
+const VH = () => Math.max(1, innerHeight || 800);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(VW(), VH());
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xfdf6ec);
+
+const camera = new THREE.PerspectiveCamera(45, VW()/VH(), .1, 100);
+const camHome = {az:0.42, el:0.13, dist:8.1};
+let camAz=camHome.az, camEl=camHome.el, camDist=camHome.dist;
+const camTarget = new THREE.Vector3(0, 1.42, 0);
+
+scene.add(new THREE.HemisphereLight(0xfffaf0, 0xc9b8a4, 0.85));
+const sun = new THREE.DirectionalLight(0xfff2dc, 1.0);
+sun.position.set(5, 9, 6); sun.castShadow = true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=-6; sun.shadow.camera.right=6;
+sun.shadow.camera.top=8; sun.shadow.camera.bottom=-4;
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0xffd9a0, 0.35);
+rim.position.set(-6, 3, -4); scene.add(rim);
+
+/* ---------- 寸法（クランク機構） ---------- */
+const R_CRANK = 0.62;      // クランク半径（行程の半分）
+const L_ROD   = 1.85;      // コネクティングロッド長
+const BORE    = 0.62;      // シリンダー内半径
+const PIS_H   = 0.52;      // ピストンの高さ
+const CLEAR   = 0.40;      // 燃焼室のすきま（上死点でのピストン頂面〜ヘッド）
+function pinY(deg){        // クランクピンの高さ（クランク中心=0）
+  const t = deg*Math.PI/180;
+  return R_CRANK*Math.cos(t) + Math.sqrt(L_ROD*L_ROD - Math.pow(R_CRANK*Math.sin(t),2));
+}
+const PIN_TDC = pinY(0), PIN_BDC = pinY(180);
+const CROWN_BDC = PIN_BDC + PIS_H/2;   // 下死点でのピストン頂面
+const CROWN_TDC = PIN_TDC + PIS_H/2;          // 上死点でのピストン頂面
+const HEAD_Y = CROWN_TDC + CLEAR;             // シリンダーヘッド下面
+
+/* ---------- 状態 ---------- */
+const S = {
+  angle:0,          // クランク角 0..720
+  playing:false,
+  speed:4,          // 1..10
+  cut:true, gas:true, labels:true, showCam:true,
+  quiz:null, stepTarget:null
+};
+function strokeIndex(a){ return Math.floor(((a%720)+720)%720 / 180); }
+
+/* ---------- 材質 ---------- */
+const matSteel = new THREE.MeshStandardMaterial({color:0xb9c2cc, roughness:.35, metalness:.75});
+const matPiston= new THREE.MeshStandardMaterial({color:0xe8a04a, roughness:.34, metalness:.62});
+const matRod   = new THREE.MeshStandardMaterial({color:0x9aa5b1, roughness:.35, metalness:.7});
+const matCrank = new THREE.MeshStandardMaterial({color:0x8592a0, roughness:.4, metalness:.7});
+const matBlock = new THREE.MeshStandardMaterial({color:0xcfd6dd, roughness:.55, metalness:.3,
+                                                 transparent:true, opacity:0.17, side:THREE.DoubleSide});
+const matHead  = new THREE.MeshStandardMaterial({color:0xa9b4c0, roughness:.45, metalness:.6});
+const matVIn   = new THREE.MeshStandardMaterial({color:0x4f9ddb, roughness:.3, metalness:.5});
+const matVEx   = new THREE.MeshStandardMaterial({color:0x8b7f97, roughness:.3, metalness:.5});
+const matPlug  = new THREE.MeshStandardMaterial({color:0xd9a441, roughness:.3, metalness:.8});
+
+/* ---------- 文字スプライト ---------- */
+function makeLabel(text, color, size, bold){
+  const pad = 8, fs = 64;
+  const c = document.createElement('canvas');
+  const g0 = c.getContext('2d');
+  g0.font = (bold?'900 ':'700 ')+fs+'px "Zen Maru Gothic", sans-serif';
+  const w = Math.ceil(g0.measureText(text).width) + pad*2;
+  c.width = w; c.height = fs + pad*2;
+  const g = c.getContext('2d');
+  g.font = (bold?'900 ':'700 ')+fs+'px "Zen Maru Gothic", sans-serif';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.lineWidth = 9; g.strokeStyle='rgba(253,246,236,.95)';
+  g.strokeText(text, c.width/2, c.height/2);
+  g.fillStyle = color; g.fillText(text, c.width/2, c.height/2);
+  const tx = new THREE.CanvasTexture(c);
+  tx.minFilter = THREE.LinearFilter;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tx, depthTest:false, transparent:true}));
+  const h = size || 0.3;
+  sp.scale.set(h * c.width/c.height, h, 1);
+  sp.renderOrder = 20;
+  return sp;
+}
+
+/* ---------- 台座 ---------- */
+{
+  const base = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.22, 3.0),
+    new THREE.MeshStandardMaterial({color:0xe4d8c6, roughness:.9}));
+  base.position.y = -1.42; base.receiveShadow = true;
+  scene.add(base);
+}
+
+/* ---------- シリンダー（ブロック） ---------- */
+const cylGroup = new THREE.Group(); scene.add(cylGroup);
+const cylH = HEAD_Y - (PIN_BDC - PIS_H/2) + 0.3;
+const cylCenterY = HEAD_Y - cylH/2;
+const cylOuter = new THREE.Mesh(
+  new THREE.CylinderGeometry(BORE+0.14, BORE+0.14, cylH, 40, 1, true), matBlock);
+cylOuter.position.y = cylCenterY;
+cylGroup.add(cylOuter);
+// 上下の口輪（フィンは廃止：ピストンが隠れて見えなくなるため）
+for(const y of [HEAD_Y-0.06, cylCenterY - cylH/2 + 0.06]){
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(BORE+0.15, 0.04, 8, 36), matHead);
+  ring.rotation.x = Math.PI/2; ring.position.y = y;
+  cylGroup.add(ring);
+}
+// シリンダーヘッド
+const head = new THREE.Mesh(new THREE.CylinderGeometry(BORE+0.22, BORE+0.22, 0.3, 40), matHead);
+head.position.y = HEAD_Y + 0.15; head.castShadow = true;
+cylGroup.add(head);
+
+/* ---------- ピストン＋ロッド＋クランク ---------- */
+const piston = new THREE.Mesh(new THREE.CylinderGeometry(BORE-0.02, BORE-0.02, PIS_H, 34), matPiston);
+piston.castShadow = true;
+scene.add(piston);
+for(let i=0;i<2;i++){   // ピストンリング
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(BORE-0.01, 0.022, 8, 30), matSteel);
+  ring.rotation.x = Math.PI/2;
+  ring.userData.dy = 0.13 - i*0.11;
+  piston.add(ring);
+  ring.position.y = ring.userData.dy;
+}
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.105, 1, 14), matRod);
+rod.castShadow = true;
+scene.add(rod);
+const rodSmall = new THREE.Mesh(new THREE.TorusGeometry(0.11,0.04,8,16), matRod); scene.add(rodSmall);
+const rodBig   = new THREE.Mesh(new THREE.TorusGeometry(0.19,0.055,8,20), matRod); scene.add(rodBig);
+
+const crankGroup = new THREE.Group(); scene.add(crankGroup);
+{
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,1.5,20), matCrank);
+  shaft.rotation.x = Math.PI/2; shaft.castShadow = true;
+  crankGroup.add(shaft);
+  for(const dz of [-0.34, 0.34]){    // クランクウェブ＋カウンターウェイト
+    const web = new THREE.Mesh(new THREE.BoxGeometry(0.30, R_CRANK+0.52, 0.17), matCrank);
+    web.position.set(0, R_CRANK/2 - 0.04, dz); web.castShadow = true;
+    crankGroup.add(web);
+    const cw = new THREE.Mesh(new THREE.CylinderGeometry(0.46,0.46,0.17,24,1,false,0,Math.PI), matCrank);
+    cw.rotation.x = Math.PI/2; cw.rotation.z = Math.PI/2;
+    cw.position.set(0, -0.06, dz); cw.castShadow = true;
+    crankGroup.add(cw);
+  }
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.95,16), matSteel);
+  pin.rotation.x = Math.PI/2; pin.position.y = R_CRANK;
+  crankGroup.add(pin);
+}
+// はずみ車（フライホイール）＝回転が見えるように印つき
+const flywheel = new THREE.Group();
+{
+  const fw = new THREE.Mesh(new THREE.CylinderGeometry(0.66,0.66,0.12,36), matCrank);
+  fw.rotation.x = Math.PI/2; fw.castShadow = true;
+  flywheel.add(fw);
+  const mark = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.15),
+    new THREE.MeshStandardMaterial({color:0xe04a63, roughness:.5}));
+  mark.position.set(0, 0.36, 0.02);
+  flywheel.add(mark);
+  flywheel.position.z = -1.12;
+  scene.add(flywheel);
+}
+
+/* ---------- バルブ ---------- */
+function makeValve(mat){
+  const g = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.052,0.052,1.15,12), matSteel);
+  stem.position.y = 0.62;
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.235,0.20,0.10,22), mat);
+  disc.position.y = 0.0; disc.castShadow = true;
+  const spring = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.34,12,1,true),
+    new THREE.MeshStandardMaterial({color:0xc0c8d0, roughness:.5, metalness:.6,
+      transparent:true, opacity:.55, side:THREE.DoubleSide}));
+  spring.position.y = 1.02;
+  g.add(stem, disc, spring);
+  return g;
+}
+const valveIn = makeValve(matVIn), valveEx = makeValve(matVEx);
+valveIn.position.set(-0.30, HEAD_Y, 0);
+valveEx.position.set( 0.30, HEAD_Y, 0);
+scene.add(valveIn, valveEx);
+const VALVE_LIFT = 0.30;
+
+// 吸気管・排気管
+function makePort(x, mat){
+  const g = new THREE.Group();
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.9,16), mat);
+  pipe.rotation.z = Math.PI/2;
+  pipe.position.set(x*1.62, HEAD_Y+0.44, 0);
+  const down = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.55,16), mat);
+  down.position.set(x*1.12, HEAD_Y+0.24, 0);
+  g.add(pipe, down);
+  return g;
+}
+scene.add(makePort(-1, matVIn), makePort(1, matVEx));
+
+/* ---------- 点火プラグ ---------- */
+const plug = new THREE.Group();
+{
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.13,0.5,14), matPlug);
+  body.position.y = HEAD_Y + 0.42;
+  const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.16,10), matSteel);
+  tip.position.y = HEAD_Y + 0.10;
+  plug.add(body, tip);
+  scene.add(plug);
+}
+// 火花
+const sparkMat = new THREE.MeshBasicMaterial({color:0xfff2a0, transparent:true, opacity:0});
+const spark = new THREE.Mesh(new THREE.SphereGeometry(0.20, 14, 10), sparkMat);
+spark.position.set(0, HEAD_Y - 0.03, 0);
+scene.add(spark);
+const sparkLight = new THREE.PointLight(0xffbb55, 0, 4.5);
+sparkLight.position.copy(spark.position);
+scene.add(sparkLight);
+
+/* ---------- 混合気の粒子 ---------- */
+const GAS_N = 70;
+const gasGeom = new THREE.SphereGeometry(0.052, 8, 6);
+const gasMat = new THREE.MeshStandardMaterial({color:0x7ec8f0, roughness:.4,
+  transparent:true, opacity:.85});
+const gas = new THREE.InstancedMesh(gasGeom, gasMat, GAS_N);
+gas.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(gas);
+const gasSeed = [];
+for(let i=0;i<GAS_N;i++){
+  const a = Math.random()*Math.PI*2, r = Math.sqrt(Math.random())*(BORE-0.14);
+  gasSeed.push({x:r*Math.cos(a), z:r*Math.sin(a), h:Math.random(), ph:Math.random()*Math.PI*2});
+}
+const _m4 = new THREE.Matrix4(), _q0 = new THREE.Quaternion(), _one = new THREE.Vector3(1,1,1);
+const _zero = new THREE.Vector3(0,0,0), _pos = new THREE.Vector3();
+
+/* ---------- 部品ラベル ---------- */
+const labelGroup = new THREE.Group(); scene.add(labelGroup);
+const lbPiston = makeLabel(TERMS.parts.piston, '#3d6b96', 0.26);
+const lbRod    = makeLabel(TERMS.parts.rod,    '#3d6b96', 0.24);
+const lbCrank  = makeLabel(TERMS.parts.crank,  '#3d6b96', 0.26);
+const lbCam    = makeLabel(TERMS.parts.cam,    '#3d6b96', 0.24);
+const lbPlug   = makeLabel(TERMS.parts.plug,   '#b06a00', 0.25);
+const lbIn     = makeLabel(TERMS.intakeValve,  '#2f7bbd', 0.24);
+const lbEx     = makeLabel(TERMS.exhaustValve, '#6f6479', 0.24);
+labelGroup.add(lbPiston, lbRod, lbCrank, lbCam, lbPlug, lbIn, lbEx);
+// 上死点・下死点の目印
+const tdcLine = makeLabel('上死点', '#c2588a', 0.23), bdcLine = makeLabel('下死点', '#c2588a', 0.23);
+tdcLine.position.set(-BORE-1.42, CROWN_TDC, 0);
+bdcLine.position.set(-BORE-1.42, CROWN_BDC, 0);
+labelGroup.add(tdcLine, bdcLine);
+for(const [y,c] of [[CROWN_TDC,0], [CROWN_BDC,1]]){
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.016, 0.016),
+    new THREE.MeshBasicMaterial({color:0xd98cb0}));
+  dash.position.set(-BORE-0.42, y, 0);
+  labelGroup.add(dash);
+}
+
+/* ---------- カムシャフト ---------- */
+const camGroup = new THREE.Group(); scene.add(camGroup);
+const CAM_Y = HEAD_Y + 0.95;
+function makeCam(x){
+  const g = new THREE.Group();
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.10,0.5,14), matCrank);
+  shaft.rotation.x = Math.PI/2;
+  g.add(shaft);
+  // カム山（円板＋出っぱり）
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.17,20), matCrank);
+  disc.rotation.x = Math.PI/2;
+  const lobe = new THREE.Mesh(new THREE.ConeGeometry(0.155, 0.30, 16), matCrank);
+  lobe.position.y = 0.24;
+  g.add(disc, lobe);
+  g.position.set(x, CAM_Y, 0);
+  camGroup.add(g);
+  return g;
+}
+const camIn = makeCam(-0.30), camEx = makeCam(0.30);
+
+/* ---------- ラベルの自動退避（重なり・画面外を実行時に回避） ---------- */
+// 優先度が高い（先に置く）ものが生き残り、あとから重なるものが消える
+const LABEL_ORDER = [];
+function registerLabels(){
+  LABEL_ORDER.length = 0;
+  [lbPiston, tdcLine, bdcLine, lbPlug, lbIn, lbEx, lbCam, lbRod, lbCrank]
+    .forEach(sp=>{ sp.material.transparent = true; sp.userData.op = 1; LABEL_ORDER.push(sp); });
+}
+let panelRects = [];
+function refreshPanelRects(){
+  panelRects = ['topbar','strokeBox','ctrl','infobar'].map(id=>{
+    const el = document.getElementById(id);
+    if(!el || el.style.display==='none') return null;
+    const r = el.getBoundingClientRect();
+    return (r.width>0 && r.height>0) ? {x:r.left, y:r.top, w:r.width, h:r.height} : null;
+  }).filter(Boolean);
+}
+const _cr=new THREE.Vector3(), _cu=new THREE.Vector3(), _cf=new THREE.Vector3();
+function labelRect(sp, W, H){
+  const c = sp.position.clone().project(camera);
+  const r = sp.position.clone().addScaledVector(_cr, sp.scale.x/2).project(camera);
+  const u = sp.position.clone().addScaledVector(_cu, sp.scale.y/2).project(camera);
+  const cx=(c.x*.5+.5)*W, cy=(-c.y*.5+.5)*H;
+  const hw=Math.abs((r.x*.5+.5)*W-cx), hh=Math.abs((-u.y*.5+.5)*H-cy);
+  return {x:cx-hw, y:cy-hh, w:2*hw, h:2*hh, behind:c.z>1};
+}
+function boxOverlap(a,b){
+  const w=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);
+  const h=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
+  return Math.max(0,w)*Math.max(0,h);
+}
+const LABEL_MARGIN = 6;     // これ以上重なったら隠す（px²ではなく面積のしきい値）
+function updateLabelVisibility(dt){
+  if(!S.labels){ return; }
+  const W = renderer.domElement.clientWidth || innerWidth || 1280;
+  const H = renderer.domElement.clientHeight || innerHeight || 800;
+  camera.matrixWorld.extractBasis(_cr,_cu,_cf);
+  const placed = [];
+  for(const sp of LABEL_ORDER){
+    if(!sp.visible){ continue; }
+    const r = labelRect(sp, W, H);
+    let ok = !r.behind
+          && r.x >= 0 && r.y >= 0 && r.x+r.w <= W && r.y+r.h <= H
+          && !panelRects.some(p => boxOverlap(r,p) > LABEL_MARGIN)
+          && !placed.some(q => boxOverlap(r,q) > LABEL_MARGIN);
+    sp.userData.op += ((ok?1:0) - sp.userData.op) * Math.min(1, dt*9);
+    sp.material.opacity = sp.userData.op;
+    if(ok) placed.push(r);
+  }
+}
+
+/* ---------- 音 ---------- */
+let actx = null;
+function ensureAudio(){ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); }
+function blip(f,d,g0,type){
+  if(!actx) return;
+  const t0 = actx.currentTime;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type||'sine'; o.frequency.value = f;
+  g.gain.setValueAtTime(g0, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+d);
+  o.connect(g).connect(actx.destination);
+  o.start(t0); o.stop(t0+d+0.05);
+}
+function boom(){
+  if(!actx) return;
+  const t0 = actx.currentTime;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type='sawtooth';
+  o.frequency.setValueAtTime(180, t0);
+  o.frequency.exponentialRampToValueAtTime(48, t0+0.16);
+  g.gain.setValueAtTime(0.16, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+0.22);
+  o.connect(g).connect(actx.destination);
+  o.start(t0); o.stop(t0+0.3);
+}
+function ding(){ blip(1320,0.45,0.14); blip(1980,0.35,0.05); }
+function buzz(){ blip(170,0.24,0.11,'square'); }
+function click(){ blip(660,0.07,0.07,'triangle'); }
+
+/* ---------- UI 更新 ---------- */
+const $ = id => document.getElementById(id);
+const dots = $('dots').children;
+let lastStroke = -1, lastSparkCycle = -1;
+function toast(msg){
+  const el=$('toast'); el.textContent=msg; el.style.opacity=1;
+  clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.opacity=0, 2200);
+}
+function valveLift(a){
+  // 吸気弁：吸入行程(0-180°)、排気弁：排気行程(540-720°)で開く
+  const inL = (a>=0 && a<180) ? Math.sin(Math.PI*a/180) : 0;
+  const exL = (a>=540 && a<720) ? Math.sin(Math.PI*(a-540)/180) : 0;
+  return {inL, exL};
+}
+function updateUI(){
+  const a = ((S.angle%720)+720)%720;
+  const si = strokeIndex(a);
+  $('strokeName').textContent = TERMS.strokes[si];
+  $('strokeName').style.color = STROKE_COLORS[si];
+  $('strokeSub').textContent = TERMS.subs[si];
+  $('crankDeg').textContent = Math.round(a);
+  $('camDeg').textContent = Math.round(a/2);
+  $('angVal').textContent = Math.round(a)+'°';
+  $('infoText').innerHTML = INFO[si];
+  for(let i=0;i<4;i++) dots[i].style.background = (i===si) ? STROKE_COLORS[si] : '#e8ddcf';
+  // 上死点・下死点の表示
+  const near = x => { const d = ((a-x)%720+720)%720; return d<6 || d>714; };
+  $('tdcMark').textContent = (near(0)||near(360)) ? '⬆ 上死点'
+                           : (near(180)||near(540)) ? '⬇ 下死点' : '　';
+  const {inL, exL} = valveLift(a);
+  $('vIn').classList.toggle('open', inL>0.02);
+  $('vEx').classList.toggle('open', exL>0.02);
+  $('vIn').querySelector('.vs').textContent = inL>0.02 ? '開' : '閉';
+  $('vEx').querySelector('.vs').textContent = exL>0.02 ? '開' : '閉';
+  if(!draggingAngle) $('angSlider').value = Math.round(a);
+}
+
+/* ---------- 機構の更新 ---------- */
+function applyAngle(){
+  const a = ((S.angle%720)+720)%720;
+  const t = a*Math.PI/180;
+  const py = pinY(a);
+  // ピストン
+  piston.position.set(0, py, 0);
+  // クランク
+  crankGroup.rotation.z = -t;
+  flywheel.rotation.z = -t;
+  // ロッド（クランクピン → ピストンピン）
+  const pinPos = new THREE.Vector3(R_CRANK*Math.sin(t), R_CRANK*Math.cos(t), 0);
+  const topPos = new THREE.Vector3(0, py, 0);
+  const dir = new THREE.Vector3().subVectors(topPos, pinPos);
+  const len = dir.length();
+  rod.position.copy(pinPos).addScaledVector(dir, 0.5);
+  rod.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  rod.scale.set(1, len, 1);
+  rodSmall.position.copy(topPos);
+  rodBig.position.copy(pinPos);
+  // バルブ
+  const {inL, exL} = valveLift(a);
+  valveIn.position.y = HEAD_Y - inL*VALVE_LIFT;
+  valveEx.position.y = HEAD_Y - exL*VALVE_LIFT;
+  // カムシャフト（クランクの半分の速さ＝2回転で1回転）
+  // 山が真下（バルブ側）を向くのが最大リフト：吸気は90°、排気は630°
+  camIn.rotation.z = -(t/2) + Math.PI*1.25;
+  camEx.rotation.z = -(t/2) + Math.PI*0.75;
+  // 混合気
+  updateGas(a, py);
+  // ラベル位置
+  lbPiston.position.set(BORE+0.62, py, 0);
+  lbRod.position.set(1.28, (py+pinPos.y)/2 - 0.12, 0);
+  lbCrank.position.set(1.34, -0.72, 0);
+  lbCam.position.set(-1.75, CAM_Y-0.22, 0);
+  lbPlug.position.set(0.75, HEAD_Y+1.02, 0);
+  lbIn.position.set(-2.55, HEAD_Y-0.95, 0);
+  lbEx.position.set(2.48, HEAD_Y+0.02, 0);
+  updateUI();
+}
+
+function updateGas(a, py){
+  const si = strokeIndex(a);
+  const crown = py + PIS_H/2;
+  const top = HEAD_Y - 0.06;
+  const span = Math.max(top - crown - 0.04, 0.02);
+  // 行程ごとの粒子数（吸入で増え、排気で減る）
+  let frac;
+  if(si===0) frac = (a/180);
+  else if(si===3) frac = 1 - ((a-540)/180);
+  else frac = 1;
+  const n = Math.max(0, Math.round(GAS_N*frac));
+  // 色：燃焼中は熱い色
+  const burn = (si===2) ? Math.max(0, 1-(a-360)/95) : 0;
+  gasMat.color.setRGB(0.49 + burn*0.5, 0.78 - burn*0.42, 0.94 - burn*0.80);
+  gasMat.opacity = 0.85;
+  for(let i=0;i<GAS_N;i++){
+    const s = gasSeed[i];
+    if(i < n){
+      const wob = Math.sin(perfT*2.2 + s.ph)*0.02;
+      _pos.set(s.x + wob, crown + 0.05 + s.h*span, s.z + Math.cos(perfT*1.8+s.ph)*0.02);
+      _m4.compose(_pos, _q0, _one);
+    }else{
+      _m4.compose(_zero, _q0, _zero);   // 消す（スケール0）
+    }
+    gas.setMatrixAt(i, _m4);
+  }
+  gas.instanceMatrix.needsUpdate = true;
+  gas.visible = S.gas;
+}
+
+/* ---------- 操作 ---------- */
+let draggingAngle = false;
+$('btnPlay').onclick = function(){
+  ensureAudio(); click();
+  S.playing = !S.playing; S.stepTarget = null;
+  this.querySelector('.st').textContent = S.playing ? '回転中' : '停止中';
+  this.classList.toggle('off', !S.playing);
+};
+$('btnStep').onclick = ()=>{
+  ensureAudio(); click();
+  S.playing = false;
+  $('btnPlay').querySelector('.st').textContent = '停止中';
+  $('btnPlay').classList.add('off');
+  const a = ((S.angle%720)+720)%720;
+  S.stepTarget = (Math.floor(a/180)+1)*180;   // 次の行程の切れ目まで回す
+};
+$('spdSlider').oninput = function(){
+  S.speed = +this.value;
+  $('spdVal').textContent = ['とても ゆっくり','ゆっくり','ゆっくり','ふつう','ふつう','すこし 速い','速い','速い','とても 速い','最速'][this.value-1];
+};
+const angSlider = $('angSlider');
+angSlider.addEventListener('pointerdown', ()=>{ draggingAngle = true; S.playing=false; S.stepTarget=null;
+  $('btnPlay').querySelector('.st').textContent='停止中'; $('btnPlay').classList.add('off'); });
+addEventListener('pointerup', ()=>{ draggingAngle = false; });
+angSlider.oninput = function(){ S.angle = +this.value; applyAngle(); };
+$('btnCut').onclick = function(){
+  S.cut = !S.cut;
+  this.querySelector('.st').textContent = S.cut?'ON':'OFF';
+  this.classList.toggle('off', !S.cut);
+  matBlock.opacity = S.cut ? 0.17 : 0.95;
+  matBlock.transparent = true;
+};
+$('btnGas').onclick = function(){
+  S.gas = !S.gas;
+  this.querySelector('.st').textContent = S.gas?'ON':'OFF';
+  this.classList.toggle('off', !S.gas);
+  gas.visible = S.gas;
+};
+$('btnLabel').onclick = function(){
+  S.labels = !S.labels;
+  this.querySelector('.st').textContent = S.labels?'ON':'OFF';
+  this.classList.toggle('off', !S.labels);
+  labelGroup.visible = S.labels;
+};
+$('btnCam2').onclick = function(){
+  S.showCam = !S.showCam;
+  this.querySelector('.st').textContent = S.showCam?'ON':'OFF';
+  this.classList.toggle('off', !S.showCam);
+  camGroup.visible = S.showCam;
+  lbCam.visible = S.showCam;
+};
+$('btnView').onclick = ()=>{ camAz=camHome.az; camEl=camHome.el; userZoomed=false; autoFit(); };
+$('startBtn').onclick = ()=>{ ensureAudio(); $('start').style.display='none'; };
+
+/* ---------- クイズ ---------- */
+const QUIZ = [
+  {q:`いまピストンは下がっていて、${T.intakeValve}が開いている。何の行程？`,
+   set:()=>{S.angle=90;}, opts:T.strokes, ans:0,
+   exp:`${T.intakeValve}が開いて、ピストンが下がる＝<b>${T.strokes[0]}</b>。混合気をシリンダーに吸いこんでいる。`},
+  {q:'両方の弁が閉じていて、ピストンが上がっている。何の行程？',
+   set:()=>{S.angle=270;}, opts:T.strokes, ans:1,
+   exp:`両方閉じてピストンが上がる＝<b>${T.strokes[1]}</b>。混合気を押しちぢめている。`},
+  {q:`${T.parts.plug}が火花を出した直後。ピストンはどうなる？`,
+   set:()=>{S.angle=370;}, opts:['押し下げられる','押し上げられる','止まる','逆回転する'], ans:0,
+   exp:'燃えたガスが広がってピストンを<b>押し下げる</b>。4つの行程でここだけが力を生んでいる。'},
+  {q:`${T.parts.crank}が2回転する間に、${T.parts.cam}は何回転する？`,
+   set:null, opts:['1回転','2回転','4回転','半回転'], ans:0,
+   exp:`${T.parts.cam}は${T.parts.crank}の<b>半分の速さ</b>。だからクランク2回転（720°）＝カム<b>1回転</b>で、弁は1サイクルに1回ずつ開く。`},
+  {q:'4つの行程のうち、エンジンが力を生み出しているのはどれ？',
+   set:null, opts:T.strokes, ans:2,
+   exp:`<b>${T.strokes[2]}</b>だけが力を生む。ほかの3つは、はずみ車にたくわえた勢いで回っている。`},
+  {q:`${T.exhaustValve}が開いて、ピストンが上がっている。何の行程？`,
+   set:()=>{S.angle=630;}, opts:T.strokes, ans:3,
+   exp:`${T.exhaustValve}が開いてピストンが上がる＝<b>${T.strokes[3]}</b>。燃えたあとのガスを押し出している。`},
+];
+let quizPool = [];
+function startQuiz(){
+  if(quizPool.length===0) quizPool = QUIZ.map((_,i)=>i).sort(()=>Math.random()-0.5);
+  const q = QUIZ[quizPool.pop()];
+  S.quiz = {q, done:false};
+  S.playing = false; S.stepTarget = null;
+  $('btnPlay').querySelector('.st').textContent='停止中'; $('btnPlay').classList.add('off');
+  if(q.set){ q.set(); applyAngle(); }
+  $('quizQ').textContent = q.q;
+  const opts = $('quizOpts');
+  opts.innerHTML = '';
+  q.opts.forEach((label, i)=>{
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.background = (q.opts === T.strokes)
+      ? STROKE_COLORS[i] : ['#e8768f','#4f9ddb','#6cc9a0','#e0a020'][i%4];
+    b.onclick = ()=>answerQuiz(i);
+    opts.appendChild(b);
+  });
+  $('quizAns').style.display='none';
+  opts.style.display='flex';
+  $('qClose').style.display='none';
+  $('quiz').style.display='block';
+}
+function answerQuiz(i){
+  if(!S.quiz || S.quiz.done) return;
+  S.quiz.done = true;
+  const ok = (i === S.quiz.q.ans);
+  const el = $('quizAns');
+  el.innerHTML = (ok ? '⭕ <b>せいかい！</b><br>' : '❌ <b>ざんねん…</b> 正解は「'+S.quiz.q.opts[S.quiz.q.ans]+'」<br>') + S.quiz.q.exp;
+  el.style.display='block';
+  $('quizOpts').style.display='none';
+  $('qClose').style.display='inline-block';
+  ok ? ding() : buzz();
+}
+$('qClose').onclick = ()=>{ S.quiz=null; $('quiz').style.display='none'; };
+$('btnQuiz').onclick = ()=>{ ensureAudio(); startQuiz(); };
+
+/* ---------- カメラ操作（ドラッグ＋ピンチ） ---------- */
+let dragging=false, lastX=0, lastY=0;
+const touches = new Map(); let pinchPrev = 0;
+function pinchSpan(){
+  const a=[...touches.values()];
+  return a.length<2 ? 0 : Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y);
+}
+function setDist(d){ camDist = Math.max(4.2, Math.min(18, d)); }
+let userZoomed = false;
+const FIT_H = 7.4, FIT_W = 6.6;      // 収めたいエンジンの高さ・幅（余白込み）
+function autoFit(){
+  if(userZoomed) return;
+  const vh = 2*Math.tan(camera.fov*Math.PI/360);
+  const asp = (isFinite(camera.aspect) && camera.aspect > 0) ? camera.aspect : VW()/VH();
+  const d = Math.max(camHome.dist, FIT_H/vh, FIT_W/(vh*Math.max(asp, 0.35)));
+  if(isFinite(d)) camDist = Math.min(18, d);
+}
+renderer.domElement.addEventListener('pointerdown', e=>{
+  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(touches.size===1){ dragging=true; lastX=e.clientX; lastY=e.clientY; }
+  else { dragging=false; pinchPrev=pinchSpan(); }
+});
+function endPointer(e){ touches.delete(e.pointerId); dragging=false; pinchPrev=0; }
+addEventListener('pointerup', endPointer);
+addEventListener('pointercancel', endPointer);
+addEventListener('pointermove', e=>{
+  if(touches.has(e.pointerId)) touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(touches.size>=2){
+    const d = pinchSpan();
+    if(pinchPrev>0 && d>0){ setDist(camDist*(pinchPrev/d)); userZoomed = true; }
+    pinchPrev = d; return;
+  }
+  if(!dragging) return;
+  camAz -= (e.clientX-lastX)*0.006;
+  camAz = Math.max(-1.35, Math.min(1.35, camAz));
+  camEl = Math.max(-0.12, Math.min(0.95, camEl + (e.clientY-lastY)*0.005));
+  lastX=e.clientX; lastY=e.clientY;
+});
+addEventListener('wheel', e=>{ setDist(camDist + e.deltaY*0.004); userZoomed = true; });
+addEventListener('resize', ()=>{
+  camera.aspect = VW()/VH();
+  camera.updateProjectionMatrix();
+  renderer.setSize(VW(), VH());
+  autoFit();
+  refreshPanelRects();
+});
+
+/* ---------- メインループ ---------- */
+const clock = new THREE.Clock();
+let perfT = 0;
+let sparkT = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  perfT += dt;
+
+  const degPerSec = 20 + S.speed*46;      // 速さ1→66°/s、10→480°/s
+  if(S.stepTarget !== null){
+    const a = ((S.angle%720)+720)%720;
+    let remain = S.stepTarget - a;
+    if(remain <= 0) remain += 720;
+    const step = Math.min(remain, degPerSec*dt);
+    S.angle += step;
+    if(remain - step < 0.5){ S.angle = S.stepTarget % 720; S.stepTarget = null; }
+    applyAngle();
+  } else if(S.playing){
+    S.angle = (S.angle + degPerSec*dt) % 720;
+    applyAngle();
+  }
+
+  // 点火のタイミング（360°を通過したとき）
+  const a = ((S.angle%720)+720)%720;
+  const cyc = Math.floor(S.angle/720);
+  if(a>=360 && a<380 && (S.playing || S.stepTarget!==null)){
+    const key = cyc*10 + 1;
+    if(lastSparkCycle !== key){ lastSparkCycle = key; sparkT = 1; boom(); }
+  }
+  if(a < 350) lastSparkCycle = -1;
+  if(sparkT > 0){
+    sparkT = Math.max(0, sparkT - dt*3.2);
+    sparkMat.opacity = sparkT;
+    spark.scale.setScalar(1 + (1-sparkT)*1.6);
+    sparkLight.intensity = sparkT*3.2;
+  }else{ sparkMat.opacity = 0; sparkLight.intensity = 0; }
+
+  // エネルギー変換の表示（燃焼行程のあいだ）
+  $('energy').style.opacity = (strokeIndex(a)===2) ? 1 : 0;
+
+  // 行程が変わった瞬間に軽い音
+  const si = strokeIndex(a);
+  if(si !== lastStroke){
+    if(lastStroke !== -1 && (S.playing||S.stepTarget!==null) && si!==2) blip(520,0.06,0.05,'triangle');
+    lastStroke = si;
+  }
+
+  if(S.gas) updateGas(a, pinY(a));
+  updateLabelVisibility(dt);
+
+  camera.position.set(
+    camTarget.x + camDist*Math.cos(camEl)*Math.sin(camAz),
+    camTarget.y + camDist*Math.sin(camEl),
+    camTarget.z + camDist*Math.cos(camEl)*Math.cos(camAz));
+  camera.lookAt(camTarget);
+  renderer.render(scene, camera);
+}
+
+/* ---------- 初期化 ---------- */
+const params = new URLSearchParams(location.search);
+if(params.get('skip')==='1') $('start').style.display='none';
+if(params.get('angle')) S.angle = Math.max(0, Math.min(719, +params.get('angle')));
+if(params.get('play')==='1'){ S.playing=true; $('btnPlay').querySelector('.st').textContent='回転中'; }
+else $('btnPlay').classList.add('off');
+if(params.get('cut')==='0') $('btnCut').click();
+if(params.get('gas')==='0') $('btnGas').click();
+if(params.get('quiz')==='1') setTimeout(startQuiz, 300);
+document.querySelectorAll('#start .four span').forEach((el,i)=>{ el.textContent = T.strokes[i]; });
+(()=>{ // 弁の名前を入れ、幅に収まらなければ自動で縮める
+  const set=(id,txt)=>{ const el=$(id).querySelector('.vn'); el.textContent=txt;
+    const box=$(id).clientWidth-6;
+    if(box>0 && el.scrollWidth>box) el.style.transform='scaleX('+(box/el.scrollWidth).toFixed(3)+')';
+  };
+  set('vIn', T.intakeValve); set('vEx', T.exhaustValve);
+})();
+$('spdSlider').oninput.call($('spdSlider'));
+registerLabels();
+refreshPanelRects();
+autoFit();
+applyAngle();
+animate();
+</script>
+</body>
+</html>
