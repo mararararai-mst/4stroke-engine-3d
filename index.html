@@ -613,7 +613,7 @@ function audioOut(){ return master || (actx && actx.destination); }
 /* --- エンジン音：実機の録音（CC0）をループ再生し、回転の速さで再生速度を変える ---
    出典：OpenGameArt「racing car engine sound loops」(domasx2) / CC0 パブリックドメイン --- */
 let engBuf=null, engSrc=null, engGain=null, engLoading=false;
-const ENG_RATE_MIN=0.42, ENG_RATE_MAX=1.45;
+const ENG_RATE_MIN=0.72, ENG_RATE_MAX=1.34;   // 聞き比べで選ばれた0.8倍前後が基準
 function engineRate(){
   const w=Math.max(0, Math.min(16, S.engine ? S.omega : 0));
   const r=ENG_RATE_MIN+(ENG_RATE_MAX-ENG_RATE_MIN)*(w/16);
@@ -642,21 +642,21 @@ async function startEngineSound(cranking){
   engSrc.connect(engGain).connect(master);
   if(cranking){
     // ① セルモーターで重く回される（0.6秒）
-    engSrc.playbackRate.setValueAtTime(0.17, t);
-    engSrc.playbackRate.setValueAtTime(0.17, t+0.60);
+    engSrc.playbackRate.setValueAtTime(0.50, t);
+    engSrc.playbackRate.setValueAtTime(0.50, t+0.75);
     engGain.gain.setValueAtTime(0.0001, t);
-    engGain.gain.exponentialRampToValueAtTime(0.24, t+0.10);
-    engGain.gain.setValueAtTime(0.24, t+0.60);
+    engGain.gain.exponentialRampToValueAtTime(0.46, t+0.08);
+    engGain.gain.setValueAtTime(0.46, t+0.75);
     if(S.ignition){
       // ② 点火してかかる：一気に回転が上がる
-      engSrc.playbackRate.exponentialRampToValueAtTime(Math.max(engineRate(),0.30), t+1.05);
-      engGain.gain.exponentialRampToValueAtTime(0.55, t+0.95);
-      crankingUntil = t+1.10;
+      engSrc.playbackRate.exponentialRampToValueAtTime(Math.max(engineRate(),0.72), t+1.15);
+      engGain.gain.exponentialRampToValueAtTime(0.58, t+1.05);
+      crankingUntil = t+1.20;
     }else{
       // 点火しないので、セルで回るだけでかからない
-      engSrc.playbackRate.exponentialRampToValueAtTime(0.22, t+1.10);
-      engGain.gain.exponentialRampToValueAtTime(0.20, t+1.10);
-      crankingUntil = t+1.15;
+      engSrc.playbackRate.exponentialRampToValueAtTime(0.55, t+1.25);
+      engGain.gain.exponentialRampToValueAtTime(0.34, t+1.25);
+      crankingUntil = t+1.30;
     }
   }else{
     engSrc.playbackRate.value=engineRate();
@@ -682,8 +682,12 @@ function updateEngineSound(){
     }
   } else if(engSrc) stopEngineSound();
 }
-/* 裏に回ったら止める・閉じるときも止める（鳴りっぱなしを防ぐ） */
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopEngineSound(); });
+/* 鳴りっぱなしを防ぐ。ただし押した直後に消えないよう、しばらく待ってから止める */
+let hideTimer=null;
+document.addEventListener('visibilitychange', ()=>{
+  clearTimeout(hideTimer);
+  if(document.hidden) hideTimer=setTimeout(()=>stopEngineSound(), 15000);
+});
 addEventListener('pagehide', ()=>{ try{ stopEngineSound(); if(actx) actx.close(); }catch(e){} });
 
 function blip(f,d,g0,type){
