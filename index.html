@@ -40,6 +40,8 @@
   /* 4行程の進捗ドット */
   #dots{display:flex;gap:4px;justify-content:center;margin-top:6px;}
   #dots div{height:6px;flex:1;border-radius:999px;background:#e8ddcf;transition:background .2s;}
+  #rpmRow{font-size:11.5px;margin-top:5px;opacity:.8;font-variant-numeric:tabular-nums;min-height:14px;}
+  #rpmRow b{color:#c2588a;}
 
   #ctrl{top:96px;right:12px;width:186px;padding:10px;display:flex;flex-direction:column;gap:6px;
     max-height:calc(100vh - 116px);overflow-y:auto;scrollbar-width:thin;}
@@ -47,7 +49,8 @@
     font-size:13px;font-weight:700;color:#fff;cursor:pointer;text-align:left;flex:none;}
   #ctrl button .st{float:right;opacity:.85;font-size:11px;}
   #ctrl button.off{opacity:.45;}
-  #btnPlay{background:#e8768f;} #btnStep{background:#e0a020;}
+  #btnPlay{background:#7fa8c9;} #btnStep{background:#e0a020;}
+  #btnStart{background:#e8768f;} #btnIgn{background:#e0574f;} #btnFly{background:#8d7fa6;}
   #btnCut{background:#7fa8c9;} #btnGas{background:#6cc9a0;}
   #btnLabel{background:#9c8fd6;} #btnCam2{background:#8d99ae;}
   #btnQuiz{background:#e86da0;} #btnView{background:#c9b8a4;}
@@ -65,7 +68,10 @@
   .vchip.open{color:#fff;}
   #vIn.open{background:#4f9ddb;} #vEx.open{background:#8b7f97;}
 
-  #infobar{left:12px;right:210px;bottom:12px;padding:10px 16px;font-size:13.5px;line-height:1.7;}
+  #cycleBox{left:12px;bottom:12px;width:178px;padding:8px 10px 6px;text-align:center;}
+  #cycleBox .t{font-size:10px;font-weight:700;opacity:.68;margin-bottom:3px;line-height:1.35;}
+  #cycle{width:100%;height:auto;display:block;}
+  #infobar{left:202px;right:210px;bottom:12px;padding:10px 16px;font-size:13.5px;line-height:1.7;}
   #infobar b{color:#c2588a;}
   #energy{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;
     background:#ffe9c9;color:#b06a00;font-weight:900;font-size:12.5px;opacity:0;transition:opacity .3s;}
@@ -95,6 +101,12 @@
   @media (max-height:700px){
     #infobar{padding:7px 14px;font-size:12.5px;line-height:1.55;}
     #topbar{padding:7px 14px;} #strokeName{font-size:22px;}
+    #cycleBox{width:132px;}
+    #ctrl{gap:4px;padding:8px;}
+    #ctrl button{padding:6px 9px;font-size:12px;}
+    .box{padding:4px 9px;font-size:11px;}
+    .vchip{padding:3px 2px;}
+    #strokeBox{padding:6px 16px;} #strokeSub{font-size:10.5px;}
   }
   @media (max-width:720px){
     #ctrl{width:136px;padding:8px;gap:5px;top:70px;max-height:calc(100vh - 90px);}
@@ -102,7 +114,8 @@
     #ctrl button .st{font-size:9.5px;}
     .box{font-size:10.5px;padding:5px 8px;}
     .vchip .vn{font-size:9.5px;} .vchip .vs{font-size:12px;}
-    #infobar{right:160px;font-size:11.5px;line-height:1.5;padding:7px 12px;}
+    #infobar{left:124px;right:150px;font-size:11.5px;line-height:1.5;padding:7px 12px;}
+    #cycleBox{width:104px;padding:5px 6px 3px;} #cycleBox .t{font-size:8.5px;}
     #strokeBox{width:186px;padding:7px 12px;top:64px;}
     #strokeName{font-size:19px;} #strokeSub{font-size:10px;}
     #angleRow{font-size:10px;gap:7px;}
@@ -143,10 +156,14 @@
     <span id="tdcMark">上死点</span>
   </div>
   <div id="dots"><div></div><div></div><div></div><div></div></div>
+  <div id="rpmRow"></div>
 </div>
 
 <div class="panel" id="ctrl">
-  <button id="btnPlay">▶ うごかす <span class="st">停止中</span></button>
+  <button id="btnStart">🔑 エンジンをかける <span class="st">停止中</span></button>
+  <button id="btnIgn">⚡ 点火プラグ <span class="st">ON</span></button>
+  <button id="btnFly">⚖ はずみ車 <span class="st">重い</span></button>
+  <button id="btnPlay">▶ ゆっくり見る <span class="st">停止中</span></button>
   <button id="btnStep">⏭ 次の行程へ</button>
   <div class="box">回す速さ <span class="v" id="spdVal">ふつう</span><br>
     <input type="range" id="spdSlider" min="1" max="10" value="4" step="1"></div>
@@ -164,6 +181,11 @@
   <button id="btnCam2">🔧 カムシャフト <span class="st">ON</span></button>
   <button id="btnQuiz">❓ たしかめクイズ</button>
   <button id="btnView">🎥 視点リセット</button>
+</div>
+
+<div class="panel" id="cycleBox">
+  <div class="t">1サイクル＝クランク2回転（720°）</div>
+  <canvas id="cycle" width="300" height="300"></canvas>
 </div>
 
 <div class="panel" id="infobar"><span id="infoText"></span><span id="energy">熱エネルギー → 運動エネルギー</span></div>
@@ -257,12 +279,39 @@ const HEAD_Y = CROWN_TDC + CLEAR;             // シリンダーヘッド下面
 /* ---------- 状態 ---------- */
 const S = {
   angle:0,          // クランク角 0..720
-  playing:false,
+  playing:false,    // 「見る」＝一定の速さで回す
   speed:4,          // 1..10
+  engine:false,     // 「エンジンとして動かす」＝力で回す
+  omega:0,          // 角速度（rad/s）
+  ignition:true,    // 点火プラグを働かせるか
+  heavyFly:true,    // はずみ車が重いか
   cut:true, gas:true, labels:true, showCam:true,
   quiz:null, stepTarget:null
 };
 function strokeIndex(a){ return Math.floor(((a%720)+720)%720 / 180); }
+
+/* --- 筒内のゲージ圧（正＝ピストンを押し下げる向き） ---
+   吸入：吸いこむ抵抗／圧縮：押しちぢめるほど高い／燃焼：点火で一気に上がり膨張で下がる／排気：押し出す抵抗 */
+function cylPressure(a){
+  if(a < 180) return -0.06;                                   // 吸入
+  if(a < 360){ const u=(a-180)/180; return 3.5*Math.pow(u,2.2); }   // 圧縮（けっこう重い）
+  if(a < 540){
+    const u=(a-360)/180;
+    if(S.ignition) return 26*Math.exp(-u*3.1);                // 燃焼：一気に上がって膨張で下がる
+    return 3.5*Math.pow(1-u,2.2)*0.45;   // 失火：ちぢめた気体がもどるが、熱がにげる分だけ弱い
+  }
+  return 0.10;                                                // 排気
+}
+/* クランクに伝わるトルク（ピストンを押す力 × クランクの腕） */
+function gasTorque(a){
+  const t=a*Math.PI/180;
+  const arm=Math.sin(t)*(1+(R_CRANK/L_ROD)*Math.cos(t));
+  return cylPressure(a)*arm*1.35;
+}
+function flywheelInertia(){ return S.heavyFly ? 1.2 : 0.42; }
+const ENGINE_FRICTION = 0.06;   // 速さに比例する摩擦
+const STATIC_FRICTION = 0.11;   // 速さによらない摩擦（低速だとこれで止まる）
+const STALL_OMEGA = 0.62;       // これより遅くなると回り続けられない（エンスト）
 
 /* ---------- 材質 ---------- */
 const matSteel = new THREE.MeshStandardMaterial({color:0xb9c2cc, roughness:.35, metalness:.75});
@@ -495,7 +544,7 @@ function registerLabels(){
 }
 let panelRects = [];
 function refreshPanelRects(){
-  panelRects = ['topbar','strokeBox','ctrl','infobar'].map(id=>{
+  panelRects = ['topbar','strokeBox','ctrl','infobar','cycleBox'].map(id=>{
     const el = document.getElementById(id);
     if(!el || el.style.display==='none') return null;
     const r = el.getBoundingClientRect();
@@ -600,6 +649,10 @@ function updateUI(){
   $('vIn').querySelector('.vs').textContent = inL>0.02 ? '開' : '閉';
   $('vEx').querySelector('.vs').textContent = exL>0.02 ? '開' : '閉';
   if(!draggingAngle) $('angSlider').value = Math.round(a);
+  const rpm = S.omega/(2*Math.PI)*60;
+  $('rpmRow').innerHTML = S.engine
+    ? `回転の速さ <b>${rpm.toFixed(0)}</b> 回転/分　${S.ignition?'':'（点火なし）'}${S.heavyFly?'':'（はずみ車が軽い）'}`
+    : '';
 }
 
 /* ---------- 機構の更新 ---------- */
@@ -655,8 +708,8 @@ function updateGas(a, py){
   else frac = 1;
   const n = Math.max(0, Math.round(GAS_N*frac));
   // 色：燃焼中は熱い色
-  const burn = (si===2) ? Math.max(0, 1-(a-360)/95) : 0;
-  gasMat.color.setRGB(0.49 + burn*0.5, 0.78 - burn*0.42, 0.94 - burn*0.80);
+  const burn = (si===2) ? Math.max(0, 1-(a-360)/135) : 0;
+  gasMat.color.setRGB(0.49 + burn*0.51, 0.78 - burn*0.56, 0.94 - burn*0.87);
   gasMat.opacity = 0.85;
   for(let i=0;i<GAS_N;i++){
     const s = gasSeed[i];
@@ -675,14 +728,50 @@ function updateGas(a, py){
 
 /* ---------- 操作 ---------- */
 let draggingAngle = false;
+let stallT = 0;
+function stopEngine(stalled){
+  S.engine=false; S.omega=0; stallT=0;
+  $('btnStart').querySelector('.st').textContent='停止中';
+  $('btnStart').classList.add('off');
+  if(stalled){
+    buzz();
+    toast(S.ignition ? 'はずみ車が軽くて、圧縮をこえられなかった' : '点火しないので、回り続けられなかった');
+  }
+}
+$('btnStart').onclick = function(){
+  ensureAudio(); click();
+  if(S.engine){ stopEngine(false); return; }
+  S.playing=false; S.stepTarget=null;
+  $('btnPlay').querySelector('.st').textContent='停止中'; $('btnPlay').classList.add('off');
+  S.engine=true; stallT=0;
+  S.omega=Math.max(S.omega, 4.2);          // セルモーターで最初の勢いを与える
+  this.querySelector('.st').textContent='回転中';
+  this.classList.remove('off');
+};
+$('btnIgn').onclick = function(){
+  ensureAudio(); click();
+  S.ignition=!S.ignition;
+  this.querySelector('.st').textContent=S.ignition?'ON':'OFF';
+  this.classList.toggle('off', !S.ignition);
+  toast(S.ignition?'点火プラグを入れた':'点火プラグを外した（回り続けられる？）');
+};
+$('btnFly').onclick = function(){
+  ensureAudio(); click();
+  S.heavyFly=!S.heavyFly;
+  this.querySelector('.st').textContent=S.heavyFly?'重い':'軽い';
+  this.classList.toggle('off', !S.heavyFly);
+  toast(S.heavyFly?'重いはずみ車に変えた':'軽いはずみ車に変えた（勢いをためられる？）');
+};
 $('btnPlay').onclick = function(){
   ensureAudio(); click();
+  if(S.engine) stopEngine(false);
   S.playing = !S.playing; S.stepTarget = null;
   this.querySelector('.st').textContent = S.playing ? '回転中' : '停止中';
   this.classList.toggle('off', !S.playing);
 };
 $('btnStep').onclick = ()=>{
   ensureAudio(); click();
+  if(S.engine) stopEngine(false);
   S.playing = false;
   $('btnPlay').querySelector('.st').textContent = '停止中';
   $('btnPlay').classList.add('off');
@@ -695,6 +784,7 @@ $('spdSlider').oninput = function(){
 };
 const angSlider = $('angSlider');
 angSlider.addEventListener('pointerdown', ()=>{ draggingAngle = true; S.playing=false; S.stepTarget=null;
+  if(S.engine) stopEngine(false);
   $('btnPlay').querySelector('.st').textContent='停止中'; $('btnPlay').classList.add('off'); });
 addEventListener('pointerup', ()=>{ draggingAngle = false; });
 angSlider.oninput = function(){ S.angle = +this.value; applyAngle(); };
@@ -833,6 +923,47 @@ addEventListener('resize', ()=>{
   refreshPanelRects();
 });
 
+/* ---------- サイクル図（4行程を1枚で見わたす） ---------- */
+const ccv=$('cycle'), cctx=ccv.getContext('2d');
+function drawCycle(){
+  const w=ccv.width, h=ccv.height, cx=w/2, cy=h/2, R=w*0.40, r=w*0.235;
+  cctx.clearRect(0,0,w,h);
+  const a=((S.angle%720)+720)%720;
+  const si=strokeIndex(a);
+  // 4行程を4分割の輪で表す（1周＝720°）
+  for(let i=0;i<4;i++){
+    const s0=-Math.PI/2 + i*Math.PI/2, s1=s0+Math.PI/2;
+    cctx.beginPath();
+    cctx.arc(cx,cy,R,s0+0.02,s1-0.02);
+    cctx.arc(cx,cy,r,s1-0.02,s0+0.02,true);
+    cctx.closePath();
+    cctx.fillStyle = (i===si) ? STROKE_COLORS[i] : STROKE_COLORS[i]+'33';
+    cctx.fill();
+    // 行程名
+    const mid=(s0+s1)/2, tr=(R+r)/2;
+    cctx.fillStyle = (i===si) ? '#ffffff' : '#8a8073';
+    cctx.font = (i===si?'900 ':'700 ')+ (w*0.092) +'px "Zen Maru Gothic", sans-serif';
+    cctx.textAlign='center'; cctx.textBaseline='middle';
+    cctx.fillText(TERMS.strokes[i], cx+Math.cos(mid)*tr, cy+Math.sin(mid)*tr);
+  }
+  // 現在地のマーカー
+  const ang=-Math.PI/2 + (a/720)*Math.PI*2;
+  cctx.beginPath();
+  cctx.arc(cx+Math.cos(ang)*R, cy+Math.sin(ang)*R, w*0.036, 0, Math.PI*2);
+  cctx.fillStyle='#5a4a3a'; cctx.fill();
+  cctx.strokeStyle='#fff'; cctx.lineWidth=w*0.014; cctx.stroke();
+  // 中心：クランクとカムの回転数
+  cctx.fillStyle='#8a8073';
+  cctx.font='700 '+(w*0.070)+'px "Zen Maru Gothic", sans-serif';
+  cctx.fillText('クランク', cx, cy-w*0.085);
+  cctx.fillStyle='#5a4a3a';
+  cctx.font='900 '+(w*0.135)+'px "Zen Maru Gothic", sans-serif';
+  cctx.fillText((a/360).toFixed(2)+'回転', cx, cy+w*0.015);
+  cctx.fillStyle='#9a9086';
+  cctx.font='700 '+(w*0.068)+'px "Zen Maru Gothic", sans-serif';
+  cctx.fillText('カム '+(a/720).toFixed(2)+'回転', cx, cy+w*0.115);
+}
+
 /* ---------- メインループ ---------- */
 const clock = new THREE.Clock();
 let perfT = 0;
@@ -843,7 +974,19 @@ function animate(){
   perfT += dt;
 
   const degPerSec = 20 + S.speed*46;      // 速さ1→66°/s、10→480°/s
-  if(S.stepTarget !== null){
+  if(S.engine){
+    // 力で回す：燃焼が押し、圧縮が押しもどし、はずみ車が勢いをためる
+    const aNow=((S.angle%720)+720)%720;
+    const tau = gasTorque(aNow) - ENGINE_FRICTION*S.omega - (S.omega>0.02 ? STATIC_FRICTION : 0);
+    S.omega += tau/flywheelInertia()*dt;
+    if(S.omega < 0) S.omega = 0;                       // 逆には回らない
+    S.angle = (S.angle + S.omega*dt*180/Math.PI) % 720;
+    applyAngle();
+    // 止まってしまったか
+    if(S.omega < STALL_OMEGA){ stallT += dt; if(stallT > 0.9) stopEngine(true); }
+    else stallT = 0;
+  }
+  else if(S.stepTarget !== null){
     const a = ((S.angle%720)+720)%720;
     let remain = S.stepTarget - a;
     if(remain <= 0) remain += 720;
@@ -859,7 +1002,7 @@ function animate(){
   // 点火のタイミング（360°を通過したとき）
   const a = ((S.angle%720)+720)%720;
   const cyc = Math.floor(S.angle/720);
-  if(a>=360 && a<380 && (S.playing || S.stepTarget!==null)){
+  if(a>=360 && a<380 && S.ignition && (S.playing || S.stepTarget!==null || S.engine)){
     const key = cyc*10 + 1;
     if(lastSparkCycle !== key){ lastSparkCycle = key; sparkT = 1; boom(); }
   }
@@ -883,6 +1026,7 @@ function animate(){
 
   if(S.gas) updateGas(a, pinY(a));
   updateLabelVisibility(dt);
+  drawCycle();
 
   camera.position.set(
     camTarget.x + camDist*Math.cos(camEl)*Math.sin(camAz),
@@ -914,6 +1058,7 @@ registerLabels();
 refreshPanelRects();
 autoFit();
 applyAngle();
+drawCycle();
 animate();
 </script>
 </body>
