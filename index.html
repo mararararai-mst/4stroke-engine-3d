@@ -630,19 +630,44 @@ async function loadEngineBuffer(){
   }catch(e){ engBuf=null; }
   engLoading=false;
 }
-async function startEngineSound(){
+let crankingUntil=0;              // この時刻までは始動の音を優先する
+async function startEngineSound(cranking){
   ensureAudio();
   await loadEngineBuffer();
   if(!engBuf || engSrc || !soundOn) return;
-  engGain=actx.createGain(); engGain.gain.value=0;
+  const t=actx.currentTime;
+  engGain=actx.createGain();
   engSrc=actx.createBufferSource();
   engSrc.buffer=engBuf; engSrc.loop=true;
-  engSrc.playbackRate.value=engineRate();
   engSrc.connect(engGain).connect(master);
+  if(cranking){
+    // ① セルモーターで重く回される（0.6秒）
+    engSrc.playbackRate.setValueAtTime(0.17, t);
+    engSrc.playbackRate.setValueAtTime(0.17, t+0.60);
+    engGain.gain.setValueAtTime(0.0001, t);
+    engGain.gain.exponentialRampToValueAtTime(0.24, t+0.10);
+    engGain.gain.setValueAtTime(0.24, t+0.60);
+    if(S.ignition){
+      // ② 点火してかかる：一気に回転が上がる
+      engSrc.playbackRate.exponentialRampToValueAtTime(Math.max(engineRate(),0.30), t+1.05);
+      engGain.gain.exponentialRampToValueAtTime(0.55, t+0.95);
+      crankingUntil = t+1.10;
+    }else{
+      // 点火しないので、セルで回るだけでかからない
+      engSrc.playbackRate.exponentialRampToValueAtTime(0.22, t+1.10);
+      engGain.gain.exponentialRampToValueAtTime(0.20, t+1.10);
+      crankingUntil = t+1.15;
+    }
+  }else{
+    engSrc.playbackRate.value=engineRate();
+    engGain.gain.value=0;
+    engGain.gain.setTargetAtTime(S.ignition?0.55:0.34, t, 0.12);
+    crankingUntil = 0;
+  }
   engSrc.start();
-  engGain.gain.setTargetAtTime(S.ignition?0.55:0.34, actx.currentTime, 0.12);
 }
 function stopEngineSound(){
+  crankingUntil=0;
   if(engGain && actx) engGain.gain.setTargetAtTime(0, actx.currentTime, 0.10);
   const s0=engSrc; engSrc=null; engGain=null;
   if(s0) setTimeout(()=>{ try{s0.stop(); s0.disconnect();}catch(e){} }, 420);
@@ -650,8 +675,8 @@ function stopEngineSound(){
 function updateEngineSound(){
   if(!actx) return;
   if(S.engine && soundOn){
-    if(!engSrc) startEngineSound();
-    else{
+    if(!engSrc) startEngineSound(false);
+    else if(actx.currentTime > crankingUntil){
       engSrc.playbackRate.setTargetAtTime(engineRate(), actx.currentTime, 0.14);
       engGain.gain.setTargetAtTime(S.ignition?0.55:0.34, actx.currentTime, 0.18);
     }
@@ -800,12 +825,14 @@ function stopEngine(stalled){
   }
 }
 $('btnStart').onclick = function(){
-  ensureAudio(); click();
+  ensureAudio();
   if(S.engine){ stopEngine(false); return; }
   S.playing=false; S.stepTarget=null;
   $('btnPlay').querySelector('.st').textContent='停止中'; $('btnPlay').classList.add('off');
   S.engine=true; stallT=0;
   S.omega=Math.max(S.omega, 4.2);          // セルモーターで最初の勢いを与える
+  stopEngineSound();
+  setTimeout(()=>startEngineSound(true), 20);   // セルで回す音 → かかる音
   this.querySelector('.st').textContent='回転中';
   this.classList.remove('off');
 };
