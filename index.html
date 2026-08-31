@@ -57,7 +57,9 @@
   #btnSound{background:#6f9e8f;}
   .box{background:#faf3e7;border-radius:12px;padding:6px 10px;font-size:12px;font-weight:700;flex:none;}
   .box input{width:100%;accent-color:#e8768f;}
-  .box .v{float:right;color:#b5527a;}
+  .box .v{float:right;color:#b5527a;font-variant-numeric:tabular-nums;}
+  /* 桁が増えても折り返して高さが変わらないように、値の幅を固定する */
+  #angVal{display:inline-block;min-width:2.7em;text-align:right;}
 
   /* バルブ状態 */
   #valveBox{display:flex;gap:6px;}
@@ -174,7 +176,7 @@
   <button id="btnStep">⏭ 次の行程へ</button>
   <div class="box">回す速さ <span class="v" id="spdVal">ふつう</span><br>
     <input type="range" id="spdSlider" min="1" max="10" value="4" step="1"></div>
-  <div class="box">手で回す（クランク角）<span class="v" id="angVal">0°</span><br>
+  <div class="box">クランク角を手で回す<span class="v" id="angVal">0°</span><br>
     <input type="range" id="angSlider" min="0" max="720" value="0" step="1"></div>
   <div class="box" id="valveWrap">バルブ
     <div id="valveBox" style="margin-top:5px;">
