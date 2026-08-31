@@ -631,22 +631,27 @@ const ENG_CRANK_A=0.02, ENG_CRANK_B=0.70;
 const ENG_LOOP_A=1.748, ENG_LOOP_B=2.694;
 const ENG_STOP_A=7.80;
 const ENG_OM_REF=12.7;            // ふつうに回っているときの角速度（rad/s）＝録音のままの速さ
-let engBuf=null, engSrc=null, engGain=null, engLoading=false;
+let engBuf=null, engSrc=null, engGain=null, engLoadP=null;
 function engineRate(){
   const w = S.engine ? Math.max(0, S.omegaSm) : 0;
-  const r = 0.55 + 0.45*(w/ENG_OM_REF);
+  const r = 0.55 + 0.45*Math.sqrt(Math.min(1.6, w/ENG_OM_REF));   // 直線だと、かかった直後に音が落ちこむ
   return Math.max(0.46, Math.min(1.45, r));
 }
-async function loadEngineBuffer(){
-  if(engBuf || engLoading || !actx) return;
-  engLoading=true;
-  try{
-    const bin=atob(ENGINE_OGG_B64);
-    const bytes=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    engBuf=await actx.decodeAudioData(bytes.buffer);
-  }catch(e){ engBuf=null; }
-  engLoading=false;
+function loadEngineBuffer(){
+  // 先読み中に始動ボタンを押されても、同じ約束を返して読み終わりまで待たせる。
+  // ここで「もう読んでる」とすぐ戻すと、始動音の再生が中止されてしまう。
+  if(engBuf) return Promise.resolve(engBuf);
+  if(engLoadP) return engLoadP;
+  engLoadP = (async()=>{
+    try{
+      const bin=atob(ENGINE_OGG_B64);
+      const bytes=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      engBuf=await actx.decodeAudioData(bytes.buffer);
+    }catch(e){ engBuf=null; engLoadP=null; }
+    return engBuf;
+  })();
+  return engLoadP;
 }
 /* 小さなスピーカーでも聞こえるように、超低音だけ削って少し前に出す */
 function engineChain(g){
@@ -680,7 +685,7 @@ async function startEngineSound(cranking){
     engSrc.playbackRate.value=1;
     engGain.gain.setValueAtTime(0.0001, t);
     engGain.gain.exponentialRampToValueAtTime(0.75, t+0.06);
-    crankingUntil = t+2.2;        // かかりきるまでは録音そのまま
+    crankingUntil = t+2.75;       // かかりきってアイドリングに入るまでは録音そのまま
     engSrc.start(0, 0);
   }else if(cranking){
     // 点火を外してある：セルで回る音だけがくり返す（かからない）
