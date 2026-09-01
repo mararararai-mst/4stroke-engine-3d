@@ -74,7 +74,7 @@
   #cycleBox{left:12px;bottom:12px;width:178px;padding:8px 10px 6px;text-align:center;}
   #cycleBox .t{font-size:10px;font-weight:700;opacity:.68;margin-bottom:3px;line-height:1.35;}
   #cycle{width:100%;height:auto;display:block;}
-  #infobar{left:202px;right:210px;bottom:12px;padding:10px 16px;font-size:13.5px;line-height:1.7;}
+  #infobar{left:216px;right:224px;bottom:12px;padding:10px 16px;font-size:13.5px;line-height:1.7;}
   #infobar b{color:#c2588a;}
   #energy{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;
     background:#ffe9c9;color:#b06a00;font-weight:900;font-size:12.5px;opacity:0;transition:opacity .3s;}
@@ -119,7 +119,7 @@
     #ctrl button .st{font-size:9.5px;}
     .box{font-size:10.5px;padding:5px 8px;}
     .vchip .vn{font-size:9.5px;} .vchip .vs{font-size:12px;}
-    #infobar{left:124px;right:150px;font-size:11.5px;line-height:1.5;padding:7px 12px;}
+    #infobar{left:142px;right:170px;font-size:11.5px;line-height:1.5;padding:7px 12px;}
     #cycleBox{width:104px;padding:5px 6px 3px;} #cycleBox .t{font-size:8.5px;}
     #strokeBox{width:186px;padding:7px 12px;top:64px;}
     #strokeName{font-size:19px;} #strokeSub{font-size:10px;}
@@ -130,6 +130,47 @@
   }
   /* 日本語の行末に1〜2文字だけ残る折り返しを避ける */
   #infobar, #strokeSub, #quiz .ans{text-wrap:pretty;}
+
+  /* ---- タブ（エンジンの中／車までのつながり） ---- */
+  #tabs{display:flex;gap:5px;}
+  #tabs .tab{border:none;border-radius:999px;padding:6px 14px;cursor:pointer;
+    font-family:var(--font-head);font-size:12.5px;font-weight:900;
+    background:#f0e6d8;color:#8b7f6f;}
+  #tabs .tab.on{background:#e8768f;color:#fff;}
+
+  /* ---- 車までのつながり（動力伝達） ---- */
+  #driveBox{top:74px;left:12px;width:252px;padding:9px 16px;}
+  #driveBox .dt{font-size:12.5px;font-weight:900;margin-bottom:5px;}
+  #driveBox .row{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;line-height:1.9;font-variant-numeric:tabular-nums;}
+  #driveBox .row b{color:#c2588a;font-size:14px;}
+  #driveBox .hill{margin-top:6px;padding-top:6px;border-top:1px dashed #e0d5c4;}
+  #driveBox .ok{color:#3f8f6b;font-weight:900;}
+  #driveBox .ng{color:#d05a5a;font-weight:900;}
+  #dctrl{top:96px;right:12px;width:186px;padding:10px;display:flex;flex-direction:column;gap:6px;
+    max-height:calc(100vh - 116px);overflow-y:auto;scrollbar-width:thin;}
+  #dctrl button{border:none;border-radius:12px;padding:8px 10px;font-family:var(--font-head);
+    font-size:13px;font-weight:700;color:#fff;background:#7fa8c9;cursor:pointer;text-align:left;}
+  #dctrl button .st{float:right;opacity:.85;font-size:11px;}
+  #dctrl .seg{display:flex;gap:4px;}
+  #dctrl .seg button{flex:1;text-align:center;padding:7px 2px;font-size:12px;background:#c9d6e0;color:#5a6b7a;}
+  #dctrl .seg button.on{background:#e8768f;color:#fff;}
+  #dinfo{left:12px;right:224px;bottom:12px;padding:10px 16px;font-size:13.5px;line-height:1.7;text-wrap:pretty;}
+  #dinfo b{color:#c2588a;}
+  @media (max-width:720px){
+    #driveBox{width:186px;padding:7px 12px;top:64px;}
+    #driveBox .row{font-size:10.5px;} #driveBox .row b{font-size:12px;}
+    #dctrl{width:136px;padding:8px;gap:5px;top:70px;max-height:calc(100vh - 90px);}
+    #dctrl button{font-size:11.5px;padding:7px 8px;}
+    #dinfo{right:170px;font-size:11.5px;line-height:1.5;padding:7px 12px;}
+    #tabs .tab{font-size:11px;padding:5px 10px;}
+  }
+  /* タイトルとタブが2行になる幅では、下の枠をその分だけ下げる */
+  @media (max-width:430px){
+    #strokeBox, #driveBox{top:96px;width:150px;}
+    #ctrl, #dctrl{top:100px;max-height:calc(100vh - 120px);}
+  }
+
 </style>
 </head>
 <body>
@@ -153,8 +194,41 @@
 
 <div class="panel" id="topbar">
   <h1>⚙️ 4サイクルエンジン3D</h1>
+  <div id="tabs">
+    <button class="tab on" data-view="engine">エンジンの中</button>
+    <button class="tab" data-view="drive">車までのつながり</button>
+  </div>
   <span class="pg">技術・エネルギー変換</span>
 </div>
+
+<div class="panel" id="driveBox" style="display:none;">
+  <div class="dt">歯車で、速さと力を交換する</div>
+  <div class="row"><span>歯車の組み合わせ</span><span id="dGear">11枚 → 39枚</span></div>
+  <div class="row"><span>タイヤが1回まわるのに</span><span>エンジン <b id="dTurns">3.5</b> 回転</span></div>
+  <div class="row"><span>タイヤをまわす力</span><span><b id="dForce">3.5</b> 倍</span></div>
+  <div class="hill">
+    <div class="row"><span>坂にいる力</span><span><b id="dNeed">0.5</b> 倍</span></div>
+    <div class="row"><span>いま出せる力</span><span><b id="dHave">3.5</b> 倍</span></div>
+    <div class="row"><span>のぼれる？</span><span id="dJudge" class="ok">のぼれる</span></div>
+  </div>
+</div>
+
+<div class="panel" id="dctrl" style="display:none;">
+  <button id="dBtnRun">▶ 回す <span class="st">停止中</span></button>
+  <div class="box">歯車（変速機）<br>
+    <div class="seg" id="dGearSeg" style="margin-top:5px;">
+      <button data-g="0" class="on">1速</button><button data-g="1">2速</button><button data-g="2">3速</button>
+    </div></div>
+  <div class="box">坂<br>
+    <div class="seg" id="dSlopeSeg" style="margin-top:5px;">
+      <button data-s="0" class="on">平地</button><button data-s="1">ゆるい</button><button data-s="2">きつい</button>
+    </div></div>
+  <div class="box">回す速さ <span class="v" id="dSpdVal">ふつう</span><br>
+    <input type="range" id="dSpdSlider" min="1" max="10" value="4" step="1"></div>
+  <button id="dBtnView">🎥 視点リセット</button>
+</div>
+
+<div class="panel" id="dinfo" style="display:none;"><span id="dInfoText"></span></div>
 
 <div class="panel" id="strokeBox">
   <div id="strokeName">吸入</div>
@@ -305,7 +379,8 @@ const S = {
   ignition:true,    // 点火プラグを働かせるか
   heavyFly:true,    // はずみ車が重いか
   cut:true, gas:true, labels:true, showCam:true,
-  quiz:null, stepTarget:null
+  quiz:null, stepTarget:null,
+  view:'engine'      // 'engine' = エンジンの中 / 'drive' = 車までのつながり
 };
 function strokeIndex(a){ return Math.floor(((a%720)+720)%720 / 180); }
 
@@ -563,7 +638,7 @@ function registerLabels(){
 }
 let panelRects = [];
 function refreshPanelRects(){
-  panelRects = ['topbar','strokeBox','ctrl','infobar','cycleBox'].map(id=>{
+  panelRects = ['topbar','strokeBox','ctrl','infobar','cycleBox','driveBox','dctrl','dinfo'].map(id=>{
     const el = document.getElementById(id);
     if(!el || el.style.display==='none') return null;
     const r = el.getBoundingClientRect();
@@ -1047,7 +1122,11 @@ function pinchSpan(){
   const a=[...touches.values()];
   return a.length<2 ? 0 : Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y);
 }
-function setDist(d){ camDist = Math.max(4.2, Math.min(18, d)); }
+function curDist(){ return S.view==='drive' ? D_CAM.dist : camDist; }
+function setDist(d){
+  if(S.view==='drive') D_CAM.dist = Math.max(5.5, Math.min(26, d));
+  else camDist = Math.max(4.2, Math.min(18, d));
+}
 let userZoomed = false;
 const FIT_H = 7.4, FIT_W = 6.6;      // 収めたいエンジンの高さ・幅（余白込み）
 function autoFit(){
@@ -1069,19 +1148,24 @@ addEventListener('pointermove', e=>{
   if(touches.has(e.pointerId)) touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(touches.size>=2){
     const d = pinchSpan();
-    if(pinchPrev>0 && d>0){ setDist(camDist*(pinchPrev/d)); userZoomed = true; }
+    if(pinchPrev>0 && d>0){ setDist(curDist()*(pinchPrev/d)); userZoomed = true; }
     pinchPrev = d; return;
   }
   if(!dragging) return;
-  camAz -= (e.clientX-lastX)*0.006;
-  camAz = Math.max(-1.35, Math.min(1.35, camAz));
-  camEl = Math.max(-0.12, Math.min(0.95, camEl + (e.clientY-lastY)*0.005));
+  if(S.view==='drive'){
+    D_CAM.az = Math.max(-1.35, Math.min(1.35, D_CAM.az - (e.clientX-lastX)*0.006));
+    D_CAM.el = Math.max(-0.10, Math.min(0.95, D_CAM.el + (e.clientY-lastY)*0.005));
+  }else{
+    camAz -= (e.clientX-lastX)*0.006;
+    camAz = Math.max(-1.35, Math.min(1.35, camAz));
+    camEl = Math.max(-0.12, Math.min(0.95, camEl + (e.clientY-lastY)*0.005));
+  }
   lastX=e.clientX; lastY=e.clientY;
 });
-addEventListener('wheel', e=>{ setDist(camDist + e.deltaY*0.004); userZoomed = true; });
+addEventListener('wheel', e=>{ setDist(curDist() + e.deltaY*0.004); userZoomed = true; });
 addEventListener('resize', ()=>{
-  camera.aspect = VW()/VH();
-  camera.updateProjectionMatrix();
+  camera.aspect = camera2.aspect = VW()/VH();
+  camera.updateProjectionMatrix(); camera2.updateProjectionMatrix();
   renderer.setSize(VW(), VH());
   autoFit();
   refreshPanelRects();
@@ -1194,6 +1278,16 @@ function animate(){
   updateLabelVisibility(dt);
   drawCycle();
 
+  if(S.view==='drive'){
+    updateDrive(dt);
+    camera2.position.set(
+      dTarget.x + D_CAM.dist*Math.cos(D_CAM.el)*Math.sin(D_CAM.az),
+      dTarget.y + D_CAM.dist*Math.sin(D_CAM.el),
+      dTarget.z + D_CAM.dist*Math.cos(D_CAM.el)*Math.cos(D_CAM.az));
+    camera2.lookAt(dTarget);
+    renderer.render(scene2, camera2);
+    return;
+  }
   camera.position.set(
     camTarget.x + camDist*Math.cos(camEl)*Math.sin(camAz),
     camTarget.y + camDist*Math.sin(camEl),
@@ -1201,6 +1295,308 @@ function animate(){
   camera.lookAt(camTarget);
   renderer.render(scene, camera);
 }
+
+/* ==========================================================================
+   タブ②「車までのつながり」＝ 動力伝達
+   ピストンの上下 → クランクの回転 → 歯車で速さと力を交換 → タイヤ
+   歯車は軸の間かくが変わらない（実際の変速機と同じ）ので、
+   かたほうを大きくすると相手は小さくなる。速さと力の交換が目で見える。
+   ========================================================================== */
+const GEAR_D = 1.6;               // 軸の間かく。どの段でも変わらない（半径の和＝1.6）
+const GEAR_M = 2*GEAR_D/50;       // モジュール（歯の大きさ）。歯数の合計が50なのでこれで半径の和が軸間になる
+const GEARS = [
+  {name:'1速', zs:11, zb:39},     // 減速比 3.5
+  {name:'2速', zs:17, zb:33},     // 減速比 1.9
+  {name:'3速', zs:23, zb:27}      // 減速比 1.2
+];
+const SLOPES = [
+  {name:'平地',     deg:0},
+  {name:'ゆるい坂', deg:10},
+  {name:'きつい坂', deg:20}
+];
+const WHEEL_R = 1.35;
+const AXLE_Y  = 1.45;
+const ROAD_Y  = AXLE_Y - WHEEL_R;
+const AX_SX = -GEAR_D/2, AX_BX = GEAR_D/2;
+/* 手前からエンジン → 歯車 → 奥にタイヤ。いちばん大きいタイヤを奥に置くと、
+   ななめから見たときに手前のものを隠さない。 */
+const Z_ENG = 2.2, Z_GEAR = 0, Z_WHEEL = -3.8;
+
+const D = {gear:0, slope:0, ang:0, road:0, warned:-1, sig:''};
+function gearR(z){ return z*GEAR_M/2; }
+function gearRatio(){ const g = GEARS[D.gear]; return g.zb/g.zs; }
+function needForce(){ return 0.5 + 5.0*Math.sin(SLOPES[D.slope].deg*Math.PI/180); }
+function canClimb(){ return gearRatio() > needForce(); }
+
+const scene2 = new THREE.Scene();
+scene2.background = new THREE.Color(0xfdf6ec);
+scene2.add(new THREE.HemisphereLight(0xfffaf0, 0xc9b8a4, 0.9));
+const sun2 = new THREE.DirectionalLight(0xfff2dc, 0.95);
+sun2.position.set(4, 10, 8); scene2.add(sun2);
+const rim2 = new THREE.DirectionalLight(0xffd9a0, 0.32);
+rim2.position.set(-6, 3, -5); scene2.add(rim2);
+const camera2 = new THREE.PerspectiveCamera(45, VW()/VH(), .1, 200);
+const D_HOME = {az:0.72, el:0.22, dist:12.2};
+const D_CAM = {az:D_HOME.az, el:D_HOME.el, dist:D_HOME.dist};
+const dTarget = new THREE.Vector3(0.1, 1.50, -0.6);
+
+const tilt = new THREE.Group(); scene2.add(tilt);   // 坂の傾き（機械と道路をまとめて傾ける）
+
+const matGearS = new THREE.MeshStandardMaterial({color:0x6f97b8, roughness:.4, metalness:.6});
+const matGearB = new THREE.MeshStandardMaterial({color:0xd8933c, roughness:.4, metalness:.6});
+const matTire  = new THREE.MeshStandardMaterial({color:0x1b1820, roughness:.92, metalness:.03});
+const matRim   = new THREE.MeshStandardMaterial({color:0x9aa7b3, roughness:.35, metalness:.7});
+const matMark  = new THREE.MeshStandardMaterial({color:0xe8768f, roughness:.6,  metalness:.1});
+const matRoad  = new THREE.MeshStandardMaterial({color:0x6b6053, roughness:.98, metalness:0});
+const matDash  = new THREE.MeshStandardMaterial({color:0xf6eddf, roughness:.9,  metalness:0});
+
+/* 歯車のかたち。歯をちゃんと描かないと「かみ合っている」ことが伝わらない。
+   大きいほうの歯数を奇数にしてあるので、軸を結ぶ線の上で歯と谷が向かい合う。 */
+function gearGeom(z, th){
+  const r = gearR(z), rr = r - 1.15*GEAR_M, rt = r + 0.85*GEAR_M;
+  const sh = new THREE.Shape(), p = 2*Math.PI/z;
+  for(let i=0;i<z;i++){
+    const a = i*p;
+    const pts = [[a-0.30*p, rr],[a-0.16*p, rt],[a+0.16*p, rt],[a+0.30*p, rr],[a+0.50*p, rr]];
+    for(let k=0;k<pts.length;k++){
+      const x = Math.cos(pts[k][0])*pts[k][1], y = Math.sin(pts[k][0])*pts[k][1];
+      if(i===0 && k===0) sh.moveTo(x,y); else sh.lineTo(x,y);
+    }
+  }
+  sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, {depth:th, bevelEnabled:false, curveSegments:3});
+  g.translate(0,0,-th/2);
+  return g;
+}
+function makeGear(z, mat){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(gearGeom(z, 0.30), mat);
+  body.castShadow = true; g.add(body);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,0.44,16), matSteel);
+  hub.rotation.x = Math.PI/2; g.add(hub);
+  return g;
+}
+/* 3段ぶんを先に作っておき、表示を切りかえる（切りかえるたびに作り直さない） */
+const gearsS = [], gearsB = [];
+for(const cfg of GEARS){
+  const a = makeGear(cfg.zs, matGearS); a.position.set(AX_SX, AXLE_Y, Z_GEAR); tilt.add(a); gearsS.push(a);
+  const b = makeGear(cfg.zb, matGearB); b.position.set(AX_BX, AXLE_Y, Z_GEAR); tilt.add(b); gearsB.push(b);
+}
+
+/* 軸 */
+function driveShaft(x, z0, z1){
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.085,Math.abs(z1-z0),14), matSteel);
+  m.rotation.x = Math.PI/2; m.position.set(x, AXLE_Y, (z0+z1)/2); tilt.add(m);
+}
+driveShaft(AX_SX, Z_ENG, Z_GEAR+0.25);
+driveShaft(AX_BX, Z_GEAR-0.25, Z_WHEEL);
+
+/* エンジン側：ピストンとクランク（かんたんな形。動き方はタブ①と同じ式） */
+const engMini = new THREE.Group();
+engMini.position.set(AX_SX, AXLE_Y, Z_ENG); engMini.scale.setScalar(0.78); tilt.add(engMini);
+const mBore = 0.62, mPisH = 0.5;
+const mCylMat = new THREE.MeshStandardMaterial({color:0xcfd6dd, roughness:.55, metalness:.3,
+  transparent:true, opacity:.28, side:THREE.DoubleSide});
+const mCylH = pinY(0) + mPisH/2 + 0.45 - (pinY(180) - mPisH/2);
+const mCyl = new THREE.Mesh(new THREE.CylinderGeometry(mBore+0.1, mBore+0.1, mCylH, 30, 1, true), mCylMat);
+mCyl.position.y = (pinY(180) - mPisH/2) + mCylH/2; engMini.add(mCyl);
+const mPis = new THREE.Mesh(new THREE.CylinderGeometry(mBore-0.02, mBore-0.02, mPisH, 28), matPiston);
+mPis.castShadow = true; engMini.add(mPis);
+const mRod = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.10,1,12), matRod); engMini.add(mRod);
+const mCrank = new THREE.Group(); engMini.add(mCrank);
+const mWeb = new THREE.Mesh(new THREE.BoxGeometry(0.26, R_CRANK*2+0.34, 0.20), matCrank);
+mWeb.position.y = R_CRANK/2; mCrank.add(mWeb);
+const mPin = new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.30,14), matCrank);
+mPin.rotation.x = Math.PI/2; mPin.position.y = R_CRANK; mCrank.add(mPin);
+
+/* タイヤ */
+const wheel = new THREE.Group();
+wheel.position.set(AX_BX, AXLE_Y, Z_WHEEL); tilt.add(wheel);
+const tire = new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R*0.87, WHEEL_R*0.13, 12, 44), matTire);
+tire.castShadow = true; wheel.add(tire);
+const rimM = new THREE.Mesh(new THREE.CylinderGeometry(WHEEL_R*0.40, WHEEL_R*0.40, 0.30, 28), matRim);
+rimM.rotation.x = Math.PI/2; wheel.add(rimM);
+const rimRing = new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R*0.74, WHEEL_R*0.045, 8, 40), matRim);
+wheel.add(rimRing);
+for(let i=0;i<6;i++){                                     // スポーク
+  const sp = new THREE.Mesh(new THREE.BoxGeometry(0.10, WHEEL_R*0.78, 0.10), matRim);
+  sp.position.set(Math.cos(i*Math.PI/3)*WHEEL_R*0.56, Math.sin(i*Math.PI/3)*WHEEL_R*0.56, 0);
+  sp.rotation.z = i*Math.PI/3 - Math.PI/2; wheel.add(sp);
+}
+const mark = new THREE.Mesh(new THREE.BoxGeometry(0.16, WHEEL_R*0.30, 0.34), matMark);
+mark.position.y = WHEEL_R*0.74; wheel.add(mark);          // 回っているのが分かる目印
+for(let i=0;i<24;i++){                                    // トレッド（溝）
+  const a = i*Math.PI*2/24;
+  const t = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.16, 0.40), matTire);
+  t.position.set(Math.cos(a)*WHEEL_R*0.98, Math.sin(a)*WHEEL_R*0.98, 0);
+  t.rotation.z = a; wheel.add(t);
+}
+
+/* 道路（タイヤが回ると流れる） */
+const road = new THREE.Mesh(new THREE.BoxGeometry(52, 0.22, 9.6), matRoad);
+road.position.set(0, ROAD_Y-0.11, Z_WHEEL+2.9); road.receiveShadow = true; tilt.add(road);
+const DASH_N = 26, DASH_GAP = 2.0, DASH_SPAN = DASH_N*DASH_GAP;
+const dashes = [];
+for(let i=0;i<DASH_N;i++){
+  const d = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.20), matDash);
+  d.position.set(-DASH_SPAN/2 + i*DASH_GAP, ROAD_Y+0.05, Z_WHEEL);
+  tilt.add(d); dashes.push(d);
+}
+
+/* 部品名 */
+function dLabel(text, color, size, x, y, z){
+  const sp = makeLabel(text, color, size);
+  sp.position.set(x,y,z); tilt.add(sp); return sp;
+}
+dLabel('ピストン',   '#3d6b96', 0.29, AX_SX+1.20, AXLE_Y+1.95, Z_ENG);
+dLabel('クランク',   '#3d6b96', 0.29, AX_SX-1.55, AXLE_Y-0.72, Z_ENG);
+const lbGearS = dLabel('小さい歯車', '#2f6a92', 0.27, AX_SX-0.75, 0, Z_GEAR);
+const lbGearB = dLabel('大きい歯車', '#a06a00', 0.27, AX_BX+0.55, 0, Z_GEAR);
+const dLabelList = [];   // 枠や他のラベルと重なったら消すための一覧（優先順）
+dLabel('タイヤ',     '#5a4a3a', 0.31, AX_BX+WHEEL_R+0.55, AXLE_Y+0.70, Z_WHEEL);
+for(const o of tilt.children) if(o.isSprite){ o.material.transparent = true; o.userData.op = 1; dLabelList.push(o); }
+const _dp = new THREE.Vector3();
+function updateDriveLabels(dt){
+  const W = renderer.domElement.clientWidth || innerWidth || 1280;
+  const H = renderer.domElement.clientHeight || innerHeight || 800;
+  camera2.matrixWorld.extractBasis(_cr,_cu,_cf);
+  const placed = [];
+  for(const sp of dLabelList){
+    sp.getWorldPosition(_dp);
+    const c = _dp.clone().project(camera2);
+    const r = _dp.clone().addScaledVector(_cr, sp.scale.x/2).project(camera2);
+    const u = _dp.clone().addScaledVector(_cu, sp.scale.y/2).project(camera2);
+    const cx=(c.x*.5+.5)*W, cy=(-c.y*.5+.5)*H;
+    const hw=Math.abs((r.x*.5+.5)*W-cx), hh=Math.abs((-u.y*.5+.5)*H-cy);
+    const rc = {x:cx-hw, y:cy-hh, w:2*hw, h:2*hh};
+    const ok = !(c.z>1)
+      && rc.x>=0 && rc.y>=0 && rc.x+rc.w<=W && rc.y+rc.h<=H
+      && !panelRects.some(q => boxOverlap(rc,q) > LABEL_MARGIN)
+      && !placed.some(q => boxOverlap(rc,q) > LABEL_MARGIN);
+    sp.userData.op += ((ok?1:0) - sp.userData.op) * Math.min(1, dt*9);
+    sp.material.opacity = sp.userData.op;
+    if(ok) placed.push(rc);
+  }
+}
+
+/* ---- 表示の切りかえ ---- */
+function applyGearVisual(){
+  for(let i=0;i<GEARS.length;i++){
+    gearsS[i].visible = (i===D.gear);
+    gearsB[i].visible = (i===D.gear);
+  }
+  const g = GEARS[D.gear];
+  lbGearS.position.y = AXLE_Y - gearR(g.zs) - 0.34;
+  lbGearB.position.y = AXLE_Y + gearR(g.zb) + 0.34;
+}
+function driveInfo(){
+  const g = GEARS[D.gear], r = gearRatio();
+  return '<b>' + g.zs + '枚</b>の歯車で<b>' + g.zb + '枚</b>を回すと、タイヤは <b>1/' + r.toFixed(1) +
+    '</b> の速さになるかわりに、まわす力は <b>' + r.toFixed(1) + '倍</b>になる。' +
+    '歯車は<b>速さと力を交換する道具</b>。だから坂では、遅くても力の出る歯車を使う。';
+}
+function syncDrive(){
+  const g = GEARS[D.gear], r = gearRatio(), need = needForce(), ok = canClimb();
+  const run = (S.playing || S.engine);
+  const sig = D.gear + '/' + D.slope + '/' + (run?1:0);
+  if(sig === D.sig) return;                 // 毎フレーム書きかえない
+  D.sig = sig;
+  $('dGear').textContent  = g.zs + '枚 → ' + g.zb + '枚';
+  $('dTurns').textContent = r.toFixed(1);
+  $('dForce').textContent = r.toFixed(1);
+  $('dNeed').textContent  = need.toFixed(1);
+  $('dHave').textContent  = r.toFixed(1);
+  const j = $('dJudge');
+  j.textContent = ok ? 'のぼれる' : 'のぼれない';
+  j.className = ok ? 'ok' : 'ng';
+  $('dInfoText').innerHTML = driveInfo();
+  $('dBtnRun').querySelector('.st').textContent = run ? '回転中' : '停止中';
+  $('dBtnRun').classList.toggle('off', !run);
+  $('dSpdVal').textContent = $('spdVal').textContent;
+}
+function crankSpeedRad(){
+  if(S.engine) return S.omega;
+  if(S.playing) return (20 + S.speed*46)*Math.PI/180;
+  return 0;
+}
+function updateDrive(dt){
+  const ok = canClimb();
+  let w = crankSpeedRad();
+  if(!ok && w > 0){
+    // 力が足りない＝タイヤが回らない＝エンジンも回り続けられない
+    if(S.engine) stopEngine(false);
+    S.playing = false;
+    $('btnPlay').querySelector('.st').textContent = '停止中';
+    $('btnPlay').classList.add('off');
+    const key = D.slope*10 + D.gear;
+    if(D.warned !== key){ D.warned = key; buzz(); toast('力が足りない。もっと大きい歯車で受けよう'); }
+    w = 0;
+  }
+  D.ang += w*dt;
+  // ピストンとクランク
+  const deg = D.ang*180/Math.PI, t = D.ang;
+  const py = pinY(deg);
+  mPis.position.y = py + mPisH/2;
+  mCrank.rotation.z = -t;
+  const pinX = R_CRANK*Math.sin(t), pinYY = R_CRANK*Math.cos(t);
+  const dx = pinX, dy = pinYY - py;
+  mRod.position.set(pinX/2, (pinYY+py)/2, 0);
+  mRod.scale.y = Math.max(0.01, Math.hypot(dx,dy));
+  mRod.rotation.z = Math.atan2(-dx, dy);
+  // 歯車：小さいほうはクランクと同じ、大きいほうは歯数の比だけゆっくり、逆向きに回る
+  const g = GEARS[D.gear];
+  gearsS[D.gear].rotation.z = t;
+  gearsB[D.gear].rotation.z = -t * (g.zs/g.zb);
+  wheel.rotation.z = gearsB[D.gear].rotation.z;
+  // 道路：タイヤが転がったぶんだけ流れる
+  D.road = -wheel.rotation.z * WHEEL_R;
+  const shift = ((D.road % DASH_SPAN) + DASH_SPAN) % DASH_SPAN;
+  for(let i=0;i<dashes.length;i++){
+    let x = -DASH_SPAN/2 + i*DASH_GAP - shift;
+    while(x < -DASH_SPAN/2) x += DASH_SPAN;
+    dashes[i].position.x = x;
+  }
+  // 坂の傾き
+  const target = SLOPES[D.slope].deg*Math.PI/180;
+  tilt.rotation.z += (target - tilt.rotation.z) * Math.min(1, dt*4);
+  tilt.updateMatrixWorld(true);
+  updateDriveLabels(dt);
+  syncDrive();
+}
+
+/* ---- タブの切りかえ ---- */
+const ENGINE_PANELS = ['strokeBox','ctrl','cycleBox','infobar'];
+const DRIVE_PANELS  = ['driveBox','dctrl','dinfo'];
+function setView(v){
+  S.view = v;
+  for(const id of ENGINE_PANELS) $(id).style.display = (v==='engine') ? '' : 'none';
+  for(const id of DRIVE_PANELS)  $(id).style.display = (v==='drive')  ? '' : 'none';
+  if(v==='drive'){ $('quiz').style.display='none'; S.quiz=null; }
+  for(const b of document.querySelectorAll('#tabs .tab')) b.classList.toggle('on', b.dataset.view===v);
+  camera.aspect = camera2.aspect = VW()/VH();
+  camera.updateProjectionMatrix(); camera2.updateProjectionMatrix();
+  refreshPanelRects();
+  if(v==='drive'){ applyGearVisual(); D.sig=''; syncDrive(); }
+}
+for(const b of document.querySelectorAll('#tabs .tab')) b.onclick = ()=>{ click(); setView(b.dataset.view); };
+for(const b of document.querySelectorAll('#dGearSeg button')) b.onclick = function(){
+  click(); D.gear = +this.dataset.g; D.warned = -1;
+  for(const q of document.querySelectorAll('#dGearSeg button')) q.classList.toggle('on', q===this);
+  applyGearVisual(); D.sig=''; syncDrive();
+};
+for(const b of document.querySelectorAll('#dSlopeSeg button')) b.onclick = function(){
+  click(); D.slope = +this.dataset.s; D.warned = -1;
+  for(const q of document.querySelectorAll('#dSlopeSeg button')) q.classList.toggle('on', q===this);
+  D.sig=''; syncDrive();
+};
+$('dBtnRun').onclick = ()=>{ $('btnPlay').click(); D.sig=''; syncDrive(); };
+$('dBtnView').onclick = ()=>{ click(); D_CAM.az=D_HOME.az; D_CAM.el=D_HOME.el; D_CAM.dist=D_HOME.dist; };
+$('dSpdSlider').oninput = function(){
+  $('spdSlider').value = this.value;
+  $('spdSlider').dispatchEvent(new Event('input'));
+  $('dSpdVal').textContent = $('spdVal').textContent;
+};
+applyGearVisual();
 
 /* ---------- 初期化 ---------- */
 const params = new URLSearchParams(location.search);
